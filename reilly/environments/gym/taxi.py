@@ -15,3 +15,6 @@ class Taxi(GymEnvironment):
         if done and reward == 20:
             info['wins'] = 1
         return next_state, reward, done, info
+
+    def decode(self, state):
+        return self._env.decode(state)
