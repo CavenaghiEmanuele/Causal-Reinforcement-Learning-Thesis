@@ -1,0 +1,4 @@
+from .double_temporal_difference import DoubleTemporalDifference
+from .double_q_learning import DoubleQLearning
+from .double_sarsa import DoubleSarsa
+from .double_expected_sarsa import DoubleExpectedSarsa
