@@ -255,6 +255,9 @@ class Taxi(GymEnvironment):
         # defined and sum to 1.
         self._causal_model.check_model()
 
+    def get_causal_model(self):
+        return self._causal_model
+
     def plot_causal_model(self):
         nx.draw(self._causal_model, with_labels=True)
         plt.show()
