@@ -32,7 +32,7 @@ class CausalSession(Session):
                 done,
                 training=True,
                 t=step,
-                causal_model=self._env.get_causal_model()
+                env=self._env
             )
             step += 1
         self._reset_env()
@@ -59,7 +59,7 @@ class CausalSession(Session):
                     done,
                     training=False,
                     t=step,
-                    causal_model=self._env.get_causal_model()
+                    env=self._env
                 )
                 out.append({
                     'test': test,
@@ -75,4 +75,4 @@ class CausalSession(Session):
     
     def _reset_env(self) -> None:
         init_state = self._env.reset(id=id(self._agent))
-        self._agent.reset(init_state, causal_model=self._env.get_causal_model())
+        self._agent.reset(init_state, env=self._env)
