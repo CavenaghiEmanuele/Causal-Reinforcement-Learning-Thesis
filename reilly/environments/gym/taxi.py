@@ -8,6 +8,16 @@ from pgmpy.factors.discrete import TabularCPD
 from .abstract_gym import GymEnvironment
 
 
+'''
+Actions:
+There are 6 discrete deterministic actions:
+- 0: move south
+- 1: move north
+- 2: move east
+- 3: move west
+- 4: pickup passenger
+- 5: drop off passenger
+'''
 class Taxi(GymEnvironment):
 
     def __init__(self, build_causal_model:bool=False):
@@ -24,13 +34,13 @@ class Taxi(GymEnvironment):
         return next_state, reward, done, info
 
     def decode(self, state):
-        return self._env.decode(state)
+        return tuple(self._env.decode(state))
 
     def build_causal_model(self):
         #################################
         # Defining the model structure
         #################################
-        # PP = start Passenger Position
+        # PP = Passenger Position
         # DP = Destination Position of the passenger
         # CP = Cab Position
         # onPP = the cab is on the Passenger Position
@@ -71,11 +81,11 @@ class Taxi(GymEnvironment):
             variable='DP', 
             variable_card=25, 
             values=[
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],        
+                [0.25], [0], [0], [0], [0.25],
+                [0], [0], [0], [0], [0],
+                [0], [0], [0], [0], [0],
+                [0], [0], [0], [0], [0],
+                [0.25], [0], [0], [0.25], [0],        
             ])
         cpd_CP = TabularCPD(
             variable='CP', 
@@ -258,6 +268,44 @@ class Taxi(GymEnvironment):
     def get_causal_model(self):
         return self._causal_model
 
+    def get_target(self):
+        return 'G'
+    
+    def get_evidence(self, state):
+        state = self.decode(state)
+        r = {'CP' : state[0]*5 + state[1]}
+        pp = {
+            0 : {'PP' : 0,'inC' : 1}, # inC = False
+            1 : {'PP' : 4,'inC' : 1},
+            2 : {'PP' : 20,'inC' : 1},
+            3 : {'PP' : 23,'inC' : 1},
+            4 : {'PP' : r['CP'],'inC' : 0} # inC = True
+        }        
+        r.update(pp[state[2]])
+        pd = {
+            0 : {'DP' : 0},
+            1 : {'DP' : 4},
+            2 : {'DP' : 20},
+            3 : {'DP' : 23}
+        }  
+        r.update(pd[state[3]])
+        return r
+
+    def get_actions(self):
+        return ['P', 'D']
+
+    def get_action_values(self, action):
+        if action == 'P':
+            return [0, 1]
+        elif action == 'D':
+            return [0, 1]
+
     def plot_causal_model(self):
         nx.draw(self._causal_model, with_labels=True)
         plt.show()
+
+    def causal_action_to_env_action(self, causal_action):
+        if causal_action == 'P':
+            return 4
+        elif causal_action == 'D':
+            return 5
