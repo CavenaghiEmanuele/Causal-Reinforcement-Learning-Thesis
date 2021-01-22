@@ -34,18 +34,16 @@ class CausalQLearning(TemporalDifference, object):
         if done: 
             self._epsilon *= self._e_decay
 
-
     def _select_action(self, policy_state, state, env):
         try:
-            a = self._cache_inference[env.decode(state)]
+            a = self._cache_inference[state]
         except:
             a = self._inferenced_selection(env=env, state=state)
-            self._cache_inference.update({env.decode(state) : a})
+            self._cache_inference.update({state : a})
 
         if a == None:
             return np.random.choice(range(self._actions), p=policy_state)
         return a
-
 
     def _inferenced_selection(self, env, state):
         query = causal_query(
