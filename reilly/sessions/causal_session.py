@@ -2,6 +2,7 @@ from typing import Dict, List
 from tqdm import trange
 
 import pandas as pd
+import time
 
 from .session import Session
 from ..agents import Agent
@@ -39,13 +40,14 @@ class CausalSession(Session):
 
     def _run_test(self, test: int, test_samples: int, render: bool = False) -> pd.DataFrame:
         self._reset_env()
-        if render:
-            self._env.render()
         out = []
         for sample in range(test_samples):
             step = 0
             done = False
             while not done:
+                if render:
+                    self._env.render()
+                    time.sleep(0.1)
                 action = self._agent.get_action()
                 next_state, reward, done, info = self._env.run_step(
                     action,
