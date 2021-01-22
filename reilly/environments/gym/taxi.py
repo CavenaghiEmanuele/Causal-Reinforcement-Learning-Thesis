@@ -36,6 +36,10 @@ class Taxi(GymEnvironment):
     def decode(self, state):
         return tuple(self._env.decode(state))
 
+    ###############################################
+    # Causal modification section
+    ###############################################
+
     def build_causal_model(self):
         #################################
         # Defining the model structure
@@ -309,3 +313,44 @@ class Taxi(GymEnvironment):
             return 4
         elif causal_action == 'D':
             return 5
+
+    ###############################################
+    # Hierarchical modification section
+    ###############################################
+
+    @property
+    def states_hierarchical(self) -> int:
+        return self._env.observation_space.n * 2
+
+    # State 0: no subgoal
+    # State 1: subgoal passenger in cab
+    # State 2: subgoal reach global goal
+    # 0 <--> 1 <--> 2
+    @property
+    def super_states(self) -> int:
+        return 3
+
+    # Action 0: stay in the same state
+    # Action 1: move in left state
+    # Action 2: move in right state
+    @property
+    def super_actions(self) -> int:
+        return 3
+
+    def super_reset(self, *args, **kwargs) -> int:
+        self._super_current_state = 0
+        return 0 #Starting state with no subgoal
+
+    def super_run_step(self, action, *args, **kwargs):
+        if action == 0:
+            return self._super_current_state
+        elif action == 1:
+            self._super_current_state -= 1
+            if self._super_current_state < 0:
+                self._super_current_state = 0
+            return self._super_current_state
+        elif action == 2:
+            self._super_current_state += 1
+            if self._super_current_state > 2:
+                self._super_current_state = 2
+            return self._super_current_state
