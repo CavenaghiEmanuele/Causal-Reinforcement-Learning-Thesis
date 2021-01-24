@@ -2,6 +2,7 @@ from typing import Dict, List
 from tqdm import trange
 
 import pandas as pd
+import time
 
 from ..agents import Agent
 from ..environments import Environment
@@ -51,20 +52,22 @@ class Session(object):
                 reward,
                 done,
                 training=True,
-                t=step
+                t=step,
+                env=self._env
             )
             step += 1
         self._reset_env()
 
     def _run_test(self, test: int, test_samples: int, render: bool = False) -> pd.DataFrame:
         self._reset_env()
-        if render:
-            self._env.render()
         out = []
         for sample in range(test_samples):
             step = 0
             done = False
             while not done:
+                if render:
+                    self._env.render()
+                    time.sleep(0.1)
                 action = self._agent.get_action()
                 next_state, reward, done, info = self._env.run_step(
                     action,
@@ -77,7 +80,8 @@ class Session(object):
                     reward,
                     done,
                     training=False,
-                    t=step
+                    t=step,
+                    env=self._env
                 )
                 out.append({
                     'test': test,
@@ -93,4 +97,4 @@ class Session(object):
 
     def _reset_env(self) -> None:
         init_state = self._env.reset(id=id(self._agent))
-        self._agent.reset(init_state)
+        self._agent.reset(init_state, env=self._env)
