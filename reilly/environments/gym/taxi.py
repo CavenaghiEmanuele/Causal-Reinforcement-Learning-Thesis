@@ -20,18 +20,39 @@ There are 6 discrete deterministic actions:
 '''
 class Taxi(GymEnvironment):
 
+    _done: bool
+    _subgoal: int
+
     def __init__(self, build_causal_model:bool=False):
         self._env = gym.make('Taxi-v3')
         self.reset()
+        self._done = False
+        self._subgoal = 0
         if build_causal_model:
             self.build_causal_model()
 
-    def run_step(self, action, *args, **kwargs):
+    def run_step(self, action, hierarchical:bool=False, *args, **kwargs):
         next_state, reward, done, _ = self._env.step(action)
         info = {'wins': 0}
         if done and reward == 20:
             info['wins'] = 1
+        self._done == done
+
+        # Hierarchical modification of next state and reward
+        if hierarchical:
+            if self._subgoal == 1 and self.decode(next_state)[2] == 1:
+                reward += 5
+            next_state += self.states * self._subgoal
+            
         return next_state, reward, done, info
+
+    def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
+        if hierarchical:
+            self._done = False
+            self._subgoal = 0
+            # World reset, hierarchical MDP reset
+            return (self._env.reset(), self._super_reset())
+        return self._env.reset()
 
     def decode(self, state):
         return tuple(self._env.decode(state))
@@ -320,7 +341,7 @@ class Taxi(GymEnvironment):
 
     @property
     def states_hierarchical(self) -> int:
-        return self._env.observation_space.n * 2
+        return self._env.observation_space.n * 3
 
     # State 0: no subgoal
     # State 1: subgoal passenger in cab
@@ -337,20 +358,34 @@ class Taxi(GymEnvironment):
     def super_actions(self) -> int:
         return 3
 
-    def super_reset(self, *args, **kwargs) -> int:
-        self._super_current_state = 0
+    def _super_reset(self, *args, **kwargs) -> int:
+        self._subgoal = 0
         return 0 #Starting state with no subgoal
 
+    # next_state, reward, done, info
     def super_run_step(self, action, *args, **kwargs):
-        if action == 0:
-            return self._super_current_state
-        elif action == 1:
-            self._super_current_state -= 1
-            if self._super_current_state < 0:
-                self._super_current_state = 0
-            return self._super_current_state
+        # action 0 stay in the same state = do nothing
+        if action == 1:
+            self._subgoal -= 1
+            if self._subgoal < 0:
+                self._subgoal = 0
         elif action == 2:
-            self._super_current_state += 1
-            if self._super_current_state > 2:
-                self._super_current_state = 2
-            return self._super_current_state
+            self._subgoal += 1
+            if self._subgoal >= 2:
+                self._subgoal = 2
+                return (self._subgoal, 1, None, None)
+
+        return (self._subgoal, 0, None, None)
+        
+
+    def super_reach_current_subgoal(self, *args, **kwargs):
+        if self._subgoal == 0:
+            return True
+        elif self._subgoal == 1 and self.decode(self._env.s)[2] == 4:
+            return True
+        elif self._subgoal == 2 and self._done:
+            return True
+        return False
+
+    def get_current_subgoal(self):
+        return self._subgoal
