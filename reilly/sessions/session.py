@@ -4,7 +4,7 @@ from tqdm import trange
 import pandas as pd
 import time
 
-from ..agents import Agent
+from ..agents import Agent, HierarchicalQLearning
 from ..environments import Environment
 
 
@@ -41,12 +41,21 @@ class Session(object):
         done = False
         while not done:
             action = self._agent.get_action()
-            next_state, reward, done, _ = self._env.run_step(
-                action,
-                id=id(self._agent),
-                mode='test',
-                t=step
-            )
+            if isinstance(self._agent, HierarchicalQLearning):
+                next_state, reward, done, _ = self._env.run_step(
+                    action,
+                    hierarchical=True,
+                    id=id(self._agent),
+                    mode='test',
+                    t=step
+                )
+            else:
+                next_state, reward, done, _ = self._env.run_step(
+                    action,
+                    id=id(self._agent),
+                    mode='test',
+                    t=step
+                )
             self._agent.update(
                 next_state,
                 reward,
@@ -96,5 +105,9 @@ class Session(object):
         return pd.DataFrame(out)
 
     def _reset_env(self) -> None:
-        init_state = self._env.reset(id=id(self._agent))
-        self._agent.reset(init_state, env=self._env)
+        if isinstance(self._agent, HierarchicalQLearning):
+            init_state, super_init_state = self._env.reset(hierarchical=True ,id=id(self._agent))
+            self._agent.reset(init_state, super_init_state, hierarchical=True, env=self._env)
+        else:
+            init_state = self._env.reset(id=id(self._agent))
+            self._agent.reset(init_state, env=self._env)
