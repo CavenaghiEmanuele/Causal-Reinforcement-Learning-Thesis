@@ -22,12 +22,14 @@ class Taxi(GymEnvironment):
 
     _done: bool
     _subgoal: int
+    _passenger_on_taxi: bool
 
     def __init__(self, build_causal_model:bool=False):
         self._env = gym.make('Taxi-v3')
         self.reset()
         self._done = False
         self._subgoal = 0
+        self._passenger_on_taxi = False
         if build_causal_model:
             self.build_causal_model()
 
@@ -40,7 +42,9 @@ class Taxi(GymEnvironment):
 
         # Hierarchical modification of next state and reward
         if hierarchical:
-            if self._subgoal == 1 and self.decode(next_state)[2] == 1:
+            if self.decode(next_state)[2] == 4:
+                self._passenger_on_taxi = True
+            if self._subgoal == 1 and self.decode(next_state)[2] == 4:
                 reward += 5
             next_state += self.states * self._subgoal
             
@@ -48,8 +52,6 @@ class Taxi(GymEnvironment):
 
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
         if hierarchical:
-            self._done = False
-            self._subgoal = 0
             # World reset, hierarchical MDP reset
             return (self._env.reset(), self._super_reset())
         return self._env.reset()
@@ -360,6 +362,8 @@ class Taxi(GymEnvironment):
 
     def _super_reset(self, *args, **kwargs) -> int:
         self._subgoal = 0
+        self._done = False
+        self._passenger_on_taxi = False
         return 0 #Starting state with no subgoal
 
     # next_state, reward, done, info
@@ -373,15 +377,16 @@ class Taxi(GymEnvironment):
             self._subgoal += 1
             if self._subgoal >= 2:
                 self._subgoal = 2
-                return (self._subgoal, 1, None, None)
 
+        if self._subgoal == 2:
+            return (self._subgoal, 1, None, None)
         return (self._subgoal, 0, None, None)
         
 
     def super_reach_current_subgoal(self, *args, **kwargs):
         if self._subgoal == 0:
             return True
-        elif self._subgoal == 1 and self.decode(self._env.s)[2] == 4:
+        elif self._subgoal == 1 and self._passenger_on_taxi:
             return True
         elif self._subgoal == 2 and self._done:
             return True
