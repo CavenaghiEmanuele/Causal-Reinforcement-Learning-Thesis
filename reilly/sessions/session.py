@@ -78,12 +78,22 @@ class Session(object):
                     self._env.render()
                     time.sleep(0.1)
                 action = self._agent.get_action()
-                next_state, reward, done, info = self._env.run_step(
-                    action,
-                    id=id(self._agent),
-                    mode='test',
-                    t=step
-                )
+                if isinstance(self._agent, HierarchicalQLearning):
+                    next_state, reward, done, info = self._env.run_step(
+                        action,
+                        hierarchical=True,
+                        id=id(self._agent),
+                        mode='test',
+                        t=step
+                    )
+                else:
+                    next_state, reward, done, info = self._env.run_step(
+                        action,
+                        id=id(self._agent),
+                        mode='test',
+                        t=step
+                    )
+
                 self._agent.update(
                     next_state,
                     reward,
