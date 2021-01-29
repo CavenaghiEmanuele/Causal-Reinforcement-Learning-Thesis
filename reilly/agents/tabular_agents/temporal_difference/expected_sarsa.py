@@ -24,6 +24,7 @@ class ExpectedSarsa(TemporalDifference, object):
         
         if done: 
             self._epsilon *= self._e_decay
+            self._epsilon = max(self._epsilon, self._min_epsilon)
     
     def _expected_value(self, state: int) -> float:
         expected_value = 0

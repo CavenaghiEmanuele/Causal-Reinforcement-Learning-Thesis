@@ -25,6 +25,7 @@ class NStepExpectedSarsa(NStep, object):
             if done:
                 self.T = t + 1
                 self._epsilon *= self._e_decay
+                self._epsilon = max(self._epsilon, self._min_epsilon)
             else:
                 self._action_list.append(self._select_action(self._policy[n_S]))
 

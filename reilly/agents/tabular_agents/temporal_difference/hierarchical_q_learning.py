@@ -16,10 +16,11 @@ class HierarchicalQLearning(TemporalDifference, object):
         epsilon: float,
         gamma: float,
         epsilon_decay: float = 1,
+        min_epsilon: float = 0.05,
         *args,
         **kwargs
     ):
-        super().__init__(states=states, actions=actions, alpha=alpha, epsilon=epsilon, gamma=gamma, epsilon_decay=epsilon_decay)
+        super().__init__(states=states, actions=actions, alpha=alpha, epsilon=epsilon, gamma=gamma, epsilon_decay=epsilon_decay, min_epsilon=min_epsilon)
         self._super_agent = QLearning(states=super_states, actions=super_actions, alpha=0.2, epsilon=0.05, gamma=0.95)
 
     def __repr__(self):
@@ -55,3 +56,4 @@ class HierarchicalQLearning(TemporalDifference, object):
 
         if done:
             self._epsilon *= self._e_decay
+            self._epsilon = max(self._epsilon, self._min_epsilon)

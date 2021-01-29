@@ -15,6 +15,7 @@ class MonteCarlo(TabularAgent):
                  epsilon: float,
                  gamma: float,
                  epsilon_decay: float = 1,
+                 min_epsilon: float = 0.05,
                  visit_update: str = "first",
                  policy_method: str = "on-policy"):
         # Basic attribute
@@ -24,6 +25,7 @@ class MonteCarlo(TabularAgent):
         self._epsilon = epsilon
         self._gamma = gamma
         self._e_decay = epsilon_decay
+        self._min_epsilon = min_epsilon
         self._actions = actions
 
         # Flags
@@ -65,6 +67,7 @@ class MonteCarlo(TabularAgent):
 
         if kwargs['training'] and done:
             self._epsilon *= self._e_decay
+            self._epsilon = max(self._epsilon, self._min_epsilon)
             G = 0
             for i in reversed(range(len(self._episode_trajectory))):
                 S, A, R = self._episode_trajectory[i]

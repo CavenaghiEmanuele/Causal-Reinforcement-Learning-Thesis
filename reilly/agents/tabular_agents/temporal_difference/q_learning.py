@@ -22,3 +22,4 @@ class QLearning(TemporalDifference, object):
 
         if done: 
             self._epsilon *= self._e_decay
+            self._epsilon = max(self._epsilon, self._min_epsilon)

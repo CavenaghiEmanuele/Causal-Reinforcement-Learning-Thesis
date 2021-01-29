@@ -15,7 +15,9 @@ class NStep(TabularAgent, object):
                 epsilon:float, 
                 gamma:float, 
                 n_step:int,
-                epsilon_decay:float = 1):
+                epsilon_decay: float = 1,
+                min_epsilon: float = 0.05
+                ):
         self._Q = ActionValue(states, actions)
         self._policy = Policy(states, actions)
         self._alpha = alpha
@@ -23,6 +25,7 @@ class NStep(TabularAgent, object):
         self._gamma = gamma
         self._n_step = n_step
         self._e_decay = epsilon_decay
+        self._min_epsilon = min_epsilon
         self._actions = actions
 
     def reset(self, init_state: int, *args, **kwargs) -> None:

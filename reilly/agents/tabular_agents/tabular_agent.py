@@ -17,6 +17,7 @@ class TabularAgent(Agent, ABC, object):
         epsilon: float,
         gamma: float,
         epsilon_decay: float = 1,
+        min_epsilon: float = 0.05,
         *args,
         **kwargs
     ):
@@ -27,6 +28,7 @@ class TabularAgent(Agent, ABC, object):
         self._gamma = gamma
         self._e_decay = epsilon_decay
         self._actions = actions
+        self._min_epsilon = min_epsilon
 
     def _select_action(self, policy_state) -> int:
         return np.random.choice(range(self._actions), p=policy_state)
