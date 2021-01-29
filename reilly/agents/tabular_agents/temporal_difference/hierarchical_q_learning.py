@@ -20,7 +20,7 @@ class HierarchicalQLearning(TemporalDifference, object):
         **kwargs
     ):
         super().__init__(states=states, actions=actions, alpha=alpha, epsilon=epsilon, gamma=gamma, epsilon_decay=epsilon_decay)
-        self._super_agent = QLearning(states=super_states, actions=super_actions, alpha=0.2, epsilon=0.05, gamma=1)
+        self._super_agent = QLearning(states=super_states, actions=super_actions, alpha=0.2, epsilon=0.05, gamma=0.95)
 
     def __repr__(self):
         return "Hierarchical QLearning: " + "alpha=" + str(self._alpha) + \
@@ -39,19 +39,19 @@ class HierarchicalQLearning(TemporalDifference, object):
                 (R + (self._gamma * np.max(self._Q[n_S])) - self._Q[self._S, self._A])
             self._policy_update(self._S, self._policy, self._Q)
 
-            # If the super agent reach current subgoal do action and update super agent
-            if kwargs['env'].super_reach_current_subgoal():
-                action = self._super_agent.get_action()
-                next_state, reward, _, _ = kwargs['env'].super_run_step(action)
-                self._super_agent.update(
-                    next_state,
-                    reward,
-                    done,
-                    training=True,
-                )
+        # If the super agent reach current subgoal do action and update super agent
+        if kwargs['env'].super_reach_current_subgoal():
+            action = self._super_agent.get_action()
+            next_state, reward, _, _ = kwargs['env'].super_run_step(action)
+            self._super_agent.update(
+                next_state,
+                reward,
+                done,
+                training=True,
+            )
 
         self._S = n_S
         self._A = self._select_action(self._policy[n_S])
-        
-        if done: 
+
+        if done:
             self._epsilon *= self._e_decay
