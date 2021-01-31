@@ -1,4 +1,6 @@
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 
 from ..agent import Agent
@@ -44,3 +46,14 @@ class TabularAgent(Agent, ABC, object):
                     (self._epsilon / self._actions)
             else:
                 policy[state, A] = self._epsilon / self._actions
+
+    def plot_Q_values(self):
+
+        ax = sns.heatmap(self._Q._action_value)
+        plt.show()
+
+        '''
+        plt.imshow(self._Q._action_value, cmap='hot', interpolation='nearest')
+        plt.colorbar()
+        plt.show()
+        '''
