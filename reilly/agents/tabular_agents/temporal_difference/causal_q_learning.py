@@ -59,7 +59,7 @@ class CausalQLearning(TemporalDifference, object):
         for action in env.get_actions():
             map.update({action : max(
                 {
-                    value : query[action].get_value(G=1, **{action:value})
+                    value : query[action].get_value(G=0, **{action:value}) # G=0 --searching for-->  G=True (0=True, 1=False)
                     for value in env.get_action_values(action)
                 }.items(),
                 key=operator.itemgetter(1))
