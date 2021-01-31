@@ -295,7 +295,9 @@ class Taxi(GymEnvironment):
     def get_causal_model(self):
         return self._causal_model
 
-    def get_target(self):
+    def get_target(self, hierarchical:bool=False):
+        if hierarchical and self._subgoal == 1:
+            return 'inC'
         return 'G'
     
     def get_evidence(self, state):
