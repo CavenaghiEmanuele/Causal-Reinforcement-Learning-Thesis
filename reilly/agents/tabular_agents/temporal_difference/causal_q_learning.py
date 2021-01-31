@@ -4,9 +4,6 @@ import operator
 from .temporal_difference import TemporalDifference
 from ....utils.causal_inference import causal_query
 
-from pgmpy.models import BayesianModel
-from typing import List, Dict
-
 
 class CausalQLearning(TemporalDifference, object):
 
