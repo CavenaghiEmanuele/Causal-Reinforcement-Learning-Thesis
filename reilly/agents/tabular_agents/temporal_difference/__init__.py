@@ -6,3 +6,4 @@ from .expected_sarsa import ExpectedSarsa
 from .double_learning import *
 from .hierarchical_q_learning import HierarchicalQLearning
 from .hierarchical_td import HierarchicalTD
+from .causal_td import CausalTD
