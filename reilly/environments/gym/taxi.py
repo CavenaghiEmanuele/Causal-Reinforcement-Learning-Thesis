@@ -300,16 +300,31 @@ class Taxi(GymEnvironment):
             return 'inC'
         return 'G'
     
-    def get_evidence(self, state):
+    def get_evidence(self, state, hierarchical:bool=False):
+        if hierarchical:
+            while state >= 500:
+                state -= self.states
+
         state = self.decode(state)
         r = {'CP' : state[0]*5 + state[1]}
-        pp = {
-            0 : {'PP' : 0,'inC' : 1}, # inC = False
-            1 : {'PP' : 4,'inC' : 1},
-            2 : {'PP' : 20,'inC' : 1},
-            3 : {'PP' : 23,'inC' : 1},
-            4 : {'PP' : r['CP'],'inC' : 0} # inC = True
-        }        
+
+        if hierarchical and self._subgoal == 1:
+            pp = {
+                0 : {'PP' : 0},
+                1 : {'PP' : 4},
+                2 : {'PP' : 20},
+                3 : {'PP' : 23},
+                4 : {'PP' : r['CP']}
+            }
+        else:
+            pp = {
+                0 : {'PP' : 0,'inC' : 1}, # inC = False
+                1 : {'PP' : 4,'inC' : 1},
+                2 : {'PP' : 20,'inC' : 1},
+                3 : {'PP' : 23,'inC' : 1},
+                4 : {'PP' : r['CP'],'inC' : 0} # inC = True
+            }
+
         r.update(pp[state[2]])
         pd = {
             0 : {'DP' : 0},
@@ -320,7 +335,11 @@ class Taxi(GymEnvironment):
         r.update(pd[state[3]])
         return r
 
-    def get_actions(self):
+    def get_actions(self, hierarchical:bool=False):
+        if hierarchical and self._subgoal == 1:
+            return ['P']
+        elif hierarchical and self._subgoal == 2:
+            return ['D']
         return ['P', 'D']
 
     def get_action_values(self, action):
