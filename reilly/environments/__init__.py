@@ -1,5 +1,5 @@
 from .environment import Environment
-from .gym import Taxi, FrozenLake4x4, FrozenLake8x8, MountainCar
+from .gym import *
 from .text import TextEnvironment, TextNeighbor
 
 
