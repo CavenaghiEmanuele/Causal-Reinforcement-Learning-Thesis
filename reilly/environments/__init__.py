@@ -1,4 +1,6 @@
 from .environment import Environment
+from .hierarchical_environment import HierarchicalEnvironment
+from .causal_environment import CausalEnvironment
 from .gym import *
 from .text import TextEnvironment, TextNeighbor
 
