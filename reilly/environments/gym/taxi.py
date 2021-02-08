@@ -1,6 +1,7 @@
 import gym
 import networkx as nx
 import pylab as plt
+import random
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
@@ -23,15 +24,20 @@ class Taxi(GymEnvironment):
     _done: bool
     _subgoal: int
     _passenger_on_taxi: bool
+    _confounders: bool
+    _not_a_passenger: bool
 
-    def __init__(self, build_causal_model:bool=False):
+    def __init__(self, build_causal_model:bool=False, confounders:bool=False):
         self._env = gym.make('Taxi-v3')
-        self.reset()
         self._done = False
         self._subgoal = 0
         self._passenger_on_taxi = False
         if build_causal_model:
             self.build_causal_model()
+        self._confounders = confounders
+        self._not_a_passenger = False
+
+        self.reset()
 
     def run_step(self, action, hierarchical:bool=False, *args, **kwargs):
         next_state, reward, done, _ = self._env.step(action)
@@ -47,10 +53,15 @@ class Taxi(GymEnvironment):
             if self._subgoal == 1 and self.decode(next_state)[2] == 4:
                 reward += 5
             next_state += self.states * self._subgoal
-            
+
+        if self._not_a_passenger and done and reward == 20:
+            reward = -250
+
         return next_state, reward, done, info
 
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
+        if self._confounders:
+            self._not_a_passenger = bool(random.getrandbits(1))
         if hierarchical:
             # World reset, hierarchical MDP reset
             return (self._env.reset(), self._super_reset())
