@@ -7,6 +7,8 @@ from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 
 from .abstract_gym import GymEnvironment
+from ..hierarchical_environment import HierarchicalEnvironment
+from ..causal_environment import CausalEnvironment
 
 
 '''
@@ -19,7 +21,7 @@ There are 6 discrete deterministic actions:
 - 4: pickup passenger
 - 5: drop off passenger
 '''
-class Taxi(GymEnvironment):
+class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
 
     _done: bool
     _subgoal: int
@@ -71,7 +73,7 @@ class Taxi(GymEnvironment):
         return tuple(self._env.decode(state))
 
     ###############################################
-    # Causal modification section
+    # Causal section
     ###############################################
 
     def build_causal_model(self):
@@ -370,7 +372,7 @@ class Taxi(GymEnvironment):
             return 5
 
     ###############################################
-    # Hierarchical modification section
+    # Hierarchical section
     ###############################################
 
     @property
