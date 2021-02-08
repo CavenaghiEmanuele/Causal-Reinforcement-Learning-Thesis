@@ -10,16 +10,18 @@ from ..environments import Environment
 
 class Session(object):
 
-    __slots__ = ['_env', '_agent', '_label']
+    __slots__ = ['_env', '_agent', '_label', '_max_steps']
 
     _env: Environment
     _agent: Agent
     _label: str
+    _max_steps: int
 
-    def __init__(self, env: Environment, agent: Agent, *args, **kwargs):
+    def __init__(self, env: Environment, agent: Agent, max_steps: int=200, *args, **kwargs):
         self._env = env
         self._agent = agent
         self._label = "ID: {}, Params: {}".format(id(agent), agent)
+        self._max_steps = max_steps
 
     def run(self, episodes: int, test_offset: int, test_samples: int, render: bool = False, *args, **kwargs) -> pd.DataFrame:
         out = []
@@ -64,6 +66,9 @@ class Session(object):
                 t=step,
                 env=self._env
             )
+            if step >= self._max_steps:
+                self._reset_env()
+                return
             step += 1
         self._reset_env()
 
@@ -110,6 +115,9 @@ class Session(object):
                     'reward': reward,
                     **info
                 })
+                if step >= self._max_steps:
+                    self._reset_env()
+                    return pd.DataFrame(out)
                 step += 1
             self._reset_env()
         return pd.DataFrame(out)
