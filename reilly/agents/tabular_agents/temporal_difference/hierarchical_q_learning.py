@@ -18,10 +18,12 @@ class HierarchicalQLearning(HierarchicalTD, object):
                 (R + (self._gamma * np.max(self._Q[n_S])) - self._Q[self._S, self._A])
             self._policy_update(self._S, self._policy, self._Q)
 
+        try: cum_reward = kwargs['cum_reward']
+        except: cum_reward = 0
         # If the super agent reach current subgoal do action and update super agent
         if kwargs['env'].super_reach_current_subgoal():
             action = self._super_agent.get_action()
-            next_state, reward, _, _ = kwargs['env'].super_run_step(action)
+            next_state, reward, _, _ = kwargs['env'].super_run_step(action, cum_reward)
             self._super_agent.update(
                 next_state,
                 reward,

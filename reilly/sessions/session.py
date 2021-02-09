@@ -41,6 +41,7 @@ class Session(object):
     def _run_train(self) -> None:
         step = 0
         done = False
+        cum_reward = 0
         while not done:
             action = self._agent.get_action()
             if isinstance(self._agent, HierarchicalTD):
@@ -58,13 +59,15 @@ class Session(object):
                     mode='test',
                     t=step
                 )
+            cum_reward += reward
             self._agent.update(
                 next_state,
                 reward,
                 done,
                 training=True,
                 t=step,
-                env=self._env
+                env=self._env,
+                cum_reward = cum_reward
             )
             if step >= self._max_steps:
                 self._reset_env()
