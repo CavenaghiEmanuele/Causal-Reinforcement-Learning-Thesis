@@ -47,6 +47,6 @@ class Maze(GymEnvironment):
         return ('N', 'S', 'E', 'W')[action]
     
     def _flat_state(self, state) -> int:
-        rows = self._env.observation_space.high[0]
+        rows = self._env.observation_space.high[0] + 1
         return state[0] * rows + state[1]
 
