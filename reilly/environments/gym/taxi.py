@@ -43,6 +43,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
 
     def run_step(self, action, hierarchical:bool=False, *args, **kwargs):
         next_state, reward, done, _ = self._env.step(action)
+        agent_reward = reward
         info = {'wins': 0}
         if done and reward == 20:
             info['wins'] = 1
@@ -53,13 +54,13 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             if self.decode(next_state)[2] == 4:
                 self._passenger_on_taxi = True
             if self._subgoal == 1 and self.decode(next_state)[2] == 4:
-                reward += 5
+                agent_reward = 5
             next_state += self.states * self._subgoal
 
         if self._not_a_passenger and done and reward == 20:
             reward = -250
 
-        return next_state, reward, done, info
+        return next_state, reward, agent_reward, done, info
 
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
         if self._confounders:

@@ -45,7 +45,7 @@ class Session(object):
         while not done:
             action = self._agent.get_action()
             if isinstance(self._agent, HierarchicalTD):
-                next_state, reward, done, _ = self._env.run_step(
+                next_state, reward, agent_reward, done, _ = self._env.run_step(
                     action,
                     hierarchical=True,
                     id=id(self._agent),
@@ -53,7 +53,7 @@ class Session(object):
                     t=step
                 )
             else:
-                next_state, reward, done, _ = self._env.run_step(
+                next_state, reward, agent_reward, done, _ = self._env.run_step(
                     action,
                     id=id(self._agent),
                     mode='test',
@@ -62,7 +62,7 @@ class Session(object):
             cum_reward += reward
             self._agent.update(
                 next_state,
-                reward,
+                agent_reward,
                 done,
                 training=True,
                 t=step,
@@ -87,7 +87,7 @@ class Session(object):
                     time.sleep(0.1)
                 action = self._agent.get_action()
                 if isinstance(self._agent, HierarchicalTD):
-                    next_state, reward, done, info = self._env.run_step(
+                    next_state, reward, agent_reward, done, info = self._env.run_step(
                         action,
                         hierarchical=True,
                         id=id(self._agent),
@@ -95,7 +95,7 @@ class Session(object):
                         t=step
                     )
                 else:
-                    next_state, reward, done, info = self._env.run_step(
+                    next_state, reward, agent_reward, done, info = self._env.run_step(
                         action,
                         id=id(self._agent),
                         mode='test',
@@ -104,7 +104,7 @@ class Session(object):
 
                 self._agent.update(
                     next_state,
-                    reward,
+                    agent_reward,
                     done,
                     training=False,
                     t=step,
