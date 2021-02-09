@@ -401,7 +401,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         return 0 #Starting state with no subgoal
 
     # next_state, reward, done, info
-    def super_run_step(self, action, *args, **kwargs):
+    def super_run_step(self, action, cum_reward, *args, **kwargs):
         # action 0 stay in the same state = do nothing
         if action == 1:
             self._subgoal -= 1
@@ -413,7 +413,8 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
                 self._subgoal = 2
 
         if self._subgoal == 2:
-            return (self._subgoal, 1, None, None)
+            reward = max(0, cum_reward)
+            return (self._subgoal, reward + 1, None, None)
         return (self._subgoal, 0, None, None)
         
 
