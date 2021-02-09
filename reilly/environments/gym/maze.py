@@ -32,15 +32,11 @@ class Maze(GymEnvironment):
         next_state, reward, done, _ = self._env.step(action)
         next_state = self._flat_state(next_state)
 
-        info = {'wins': 0}
+        info = {'wins': 0, 'steps': 1}
         if done and reward == 1:
             info['wins'] = 1
         self._done == done
 
-        if reward < 0:
-            reward = -1
-        elif reward == 1:
-            reward = 10
         return next_state, reward, done, info
 
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
