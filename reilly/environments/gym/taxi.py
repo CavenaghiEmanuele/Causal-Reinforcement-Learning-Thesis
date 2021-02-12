@@ -50,11 +50,10 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         self._done == done
 
         # Hierarchical modification of next state and reward
-        if hierarchical:
-            if self.decode(next_state)[2] == 4:
-                self._passenger_on_taxi = True
-            if self._subgoal == 1 and self.decode(next_state)[2] == 4:
+        if hierarchical:              
+            if self._subgoal == 1 and (not self._passenger_on_taxi) and self.decode(next_state)[2] == 4:
                 agent_reward = 5
+                self._passenger_on_taxi = True
             next_state += self.states * self._subgoal
 
         if self._not_a_passenger and done and reward == 20:
@@ -378,7 +377,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
 
     @property
     def states_hierarchical(self) -> int:
-        return self._env.observation_space.n * 3
+        return self.states * 3
 
     # State 0: no subgoal
     # State 1: subgoal passenger in cab
