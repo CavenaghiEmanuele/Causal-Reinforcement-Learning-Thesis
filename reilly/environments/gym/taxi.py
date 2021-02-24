@@ -2,6 +2,7 @@ import gym
 import networkx as nx
 import pylab as plt
 import random
+import numpy as np
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
@@ -27,24 +28,43 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
     _subgoal: int
     _passenger_on_taxi: bool
     _confounders: bool
-    _not_a_passenger: bool
+    _thief: bool
 
     def __init__(self, build_causal_model:bool=False, confounders:bool=False):
         self._env = gym.make('Taxi-v3')
         self._done = False
         self._subgoal = 0
         self._passenger_on_taxi = False
+
+        self._confounders = confounders
+        self._thief = False
         if build_causal_model:
             self.build_causal_model()
-        self._confounders = confounders
-        self._not_a_passenger = False
 
         self.reset()
 
+    @property
+    def actions(self) -> int:
+        if self._confounders:
+            return self._env.action_space.n + 1
+        return self._env.action_space.n
+
     def run_step(self, action, hierarchical:bool=False, *args, **kwargs):
-        next_state, reward, done, _ = self._env.step(action)
-        agent_reward = reward
+
         info = {'wins': 0}
+
+        if action == 6: # call police
+            next_state, _, _, _ = self._env.step(4) # Pickup only to take the same state, we don't save reward and done
+            reward, done = -10, False
+            if self._thief:
+                reward, done = 20, True
+        else: 
+            next_state, reward, done, _ = self._env.step(action)
+            if self._thief and done and reward == 20:
+                reward = -1000
+                info['wins'] = 0
+
+        agent_reward = reward
         if done and reward == 20:
             info['wins'] = 1
         self._done == done
@@ -56,20 +76,20 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
                 self._passenger_on_taxi = True
             next_state += self.states * self._subgoal
 
-        if self._not_a_passenger and done and reward == 20:
-            reward = -250
-
         return next_state, reward, agent_reward, done, info
 
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
-        if self._confounders:
-            self._not_a_passenger = bool(random.getrandbits(1))
+        if self._confounders: 
+            self._thief = bool(random.getrandbits(1))
         if hierarchical:
-            # World reset, hierarchical MDP reset
             return (self._env.reset(), self._super_reset())
         return self._env.reset()
 
-    def decode(self, state):
+    def decode(self, state, hierarchical:bool=False):
+        if hierarchical:
+            while state > self.states:
+                state -= self.states
+            return tuple(self._env.decode(state))
         return tuple(self._env.decode(state))
 
     ###############################################
@@ -92,6 +112,9 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         # inC = passenger is in the Cab
         # G = Goal
 
+        # thief = passenger is a thief (confounder)
+        # callP = call police (action)
+
         self._causal_model = BayesianModel(
             [
                 ('PP', 'onPP'),
@@ -110,193 +133,140 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         cpd_PP = TabularCPD(
             variable='PP', 
             variable_card=25, 
-            values=[
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],        
-            ])
+            values=[[0.04] for _ in range(0,25)], #All states have the same probability
+            state_names={'PP': ['state ' + str(i) for i in range(0,25)]}
+            )
         cpd_DP = TabularCPD(
-            variable='DP', 
-            variable_card=25, 
+            variable='DP',
+            variable_card=25,
             values=[
                 [0.25], [0], [0], [0], [0.25],
                 [0], [0], [0], [0], [0],
                 [0], [0], [0], [0], [0],
                 [0], [0], [0], [0], [0],
                 [0.25], [0], [0], [0.25], [0],        
-            ])
+            ],
+            state_names={'DP': ['destination ' + str(i) for i in range(0,25)]}
+            )
         cpd_CP = TabularCPD(
             variable='CP', 
             variable_card=25, 
-            values=[
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],
-                [0.04], [0.04], [0.04], [0.04], [0.04],        
-            ])
+            values=[[0.04] for _ in range(0,25)], #All states have the same probability
+            state_names={'CP': ['cab state ' + str(i) for i in range(0,25)]}
+            )
         cpd_onPP = TabularCPD(
-            variable='onPP', 
-            variable_card=2, 
+            variable='onPP',
+            variable_card=2,
             values=[
-                [
-                    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                ],
-                [
-                    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-                ]
+                np.ndarray.flatten(np.ones(25) - np.diag(np.ones(25))),
+                np.ndarray.flatten(np.diag(np.ones(25)))
             ],
             evidence=['PP', 'CP'],
             evidence_card=[25, 25],
-            #state_names={'onPP': ['True', 'False']}
-            )
+            state_names={
+                'onPP': ['False', 'True'], 
+                'PP': ['state ' + str(i) for i in range(0,25)],
+                'CP': ['cab state ' + str(i) for i in range(0,25)]
+                }
+            ) 
         cpd_onDP = TabularCPD(
             variable='onDP', 
             variable_card=2, 
             values=[
-                [
-                    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                ],
-                [
-                    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-                ]
+                np.ndarray.flatten(np.ones(25) - np.diag(np.ones(25))),
+                np.ndarray.flatten(np.diag(np.ones(25)))
             ],
             evidence=['DP', 'CP'],
             evidence_card=[25, 25],
-            #state_names={'onDP': ['True', 'False']}
+            state_names={
+                'onDP': ['False', 'True'], 
+                'DP': ['destination ' + str(i) for i in range(0,25)],
+                'CP': ['cab state ' + str(i) for i in range(0,25)]
+                }
             )
         cpd_P = TabularCPD(
             variable='P', 
             variable_card=2, 
             values=[[0.5], [0.5]],
-            #state_names={'P': ['True', 'False']}
-            )
-        cpd_D = TabularCPD(
-            variable='D', 
-            variable_card=2, 
-            values=[[0.5], [0.5]],
-            #state_names={'D': ['True', 'False']}
+            state_names={'P': ['False', 'True']}
             )
         cpd_inC = TabularCPD(
             variable='inC',
             variable_card=2,
             values=[
-                [1, 0, 0, 0], 
-                [0, 1, 1, 1]
+                [1, 1, 1, 0], 
+                [0, 0, 0, 1]
             ],
             evidence=['P', 'onPP'],
             evidence_card=[2, 2],
-            #state_names={'inC': ['True', 'False']}
+            state_names={
+                'inC': ['False', 'True'],
+                'P': ['False', 'True'],
+                'onPP': ['False', 'True']
+                }
             )
-        cpd_G = TabularCPD(
-            variable='G',
-            variable_card=2,
-            values=[
-                [1, 0, 0, 0, 0, 0, 0, 0], 
-                [0, 1, 1, 1, 1, 1, 1, 1]
-            ],
-            evidence=['D', 'inC', 'onDP'],
-            evidence_card=[2, 2, 2],
-            #state_names={'G': ['True', 'False']}
+        cpd_D = TabularCPD(
+                variable='D', 
+                variable_card=2, 
+                values=[[0.5], [0.5]],
+                state_names={'D': ['False', 'True']}
             )
+
+        if self._confounders:
+            
+            self._causal_model.add_edge('thief', 'G')
+            self._causal_model.add_edge('callP', 'G')
+
+            cpd_thief = TabularCPD(
+                variable='thief',
+                variable_card=2,
+                values=[[0.5], [0.5]],
+                state_names={'thief': ['False', 'True']}
+                )       
+            cpd_callP = TabularCPD(
+                variable='callP',
+                variable_card=2,
+                values=[[0.5], [0.5]],
+                state_names={'callP': ['False', 'True']}
+                )
+            cpd_G = TabularCPD(
+                variable='G',
+                variable_card=2,
+                values=[
+                    [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ]
+                ],
+                evidence=['D', 'inC', 'onDP', 'callP', 'thief'],
+                evidence_card=[2, 2, 2, 2, 2],
+                state_names={
+                    'G': ['False', 'True'],
+                    'D': ['False', 'True'],
+                    'inC': ['False', 'True'],
+                    'onDP': ['False', 'True'],
+                    'callP': ['False', 'True'],
+                    'thief': ['False', 'True']
+                    }
+                    )
+            
+            self._causal_model.add_cpds(cpd_thief, cpd_callP)
+
+        else: # No confounding
+            cpd_G = TabularCPD(
+                variable='G',
+                variable_card=2,
+                values=[
+                    [1, 1, 1, 1, 1, 1, 1, 0], 
+                    [0, 0, 0, 0, 0, 0, 0, 1]
+                ],
+                evidence=['D', 'inC', 'onDP'],
+                evidence_card=[2, 2, 2],
+                state_names={
+                    'G': ['False', 'True'],
+                    'D': ['False', 'True'],
+                    'inC': ['False', 'True'],
+                    'onDP': ['False', 'True'],
+                    }
+                    )
 
         # Associating the CPDs with the network
         self._causal_model.add_cpds(cpd_PP, cpd_DP, cpd_CP, cpd_onPP, cpd_onDP, cpd_P, cpd_D, cpd_inC, cpd_G)
@@ -319,47 +289,60 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
                 state -= self.states
 
         state = self.decode(state)
-        r = {'CP' : state[0]*5 + state[1]}
+        r = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
+
+        if self._confounders:
+            r.update({'thief': str(self._thief)})
 
         if hierarchical and self._subgoal == 1:
             pp = {
-                0 : {'PP' : 0},
-                1 : {'PP' : 4},
-                2 : {'PP' : 20},
-                3 : {'PP' : 23},
-                4 : {'PP' : r['CP']}
+                0 : {'PP' : 'state ' + str(0)},
+                1 : {'PP' : 'state ' + str(4)},
+                2 : {'PP' : 'state ' + str(20)},
+                3 : {'PP' : 'state ' + str(23)},
+                4 : {'PP' : 'state ' + str(state[0]*5 + state[1])}
             }
         else:
             pp = {
-                0 : {'PP' : 0,'inC' : 1}, # inC = False
-                1 : {'PP' : 4,'inC' : 1},
-                2 : {'PP' : 20,'inC' : 1},
-                3 : {'PP' : 23,'inC' : 1},
-                4 : {'PP' : r['CP'],'inC' : 0} # inC = True
+                0 : {'PP' : 'state ' + str(0), 'inC' : 'False'},
+                1 : {'PP' : 'state ' + str(4), 'inC' : 'False'},
+                2 : {'PP' : 'state ' + str(20), 'inC' : 'False'},
+                3 : {'PP' : 'state ' + str(23), 'inC' : 'False'},
+                4 : {'PP' : 'state ' + str(state[0]*5 + state[1]), 'inC' : 'True'}
             }
 
         r.update(pp[state[2]])
         pd = {
-            0 : {'DP' : 0},
-            1 : {'DP' : 4},
-            2 : {'DP' : 20},
-            3 : {'DP' : 23}
+            0 : {'DP' : 'destination ' + str(0)},
+            1 : {'DP' : 'destination ' + str(4)},
+            2 : {'DP' : 'destination ' + str(20)},
+            3 : {'DP' : 'destination ' + str(23)}
         }  
         r.update(pd[state[3]])
         return r
 
     def get_actions(self, hierarchical:bool=False):
-        if hierarchical and self._subgoal == 1:
-            return ['P']
-        elif hierarchical and self._subgoal == 2:
-            return ['D']
-        return ['P', 'D']
+        actions = []
+        if self._confounders:
+            actions.append('callP')
+    
+        if hierarchical:
+            if self._subgoal == 1:
+                actions.append('P')
+            elif self._subgoal == 2:
+                actions.append('D')
+            return actions
+        
+        actions.extend(['P', 'D'])
+        return actions
 
     def get_action_values(self, action):
         if action == 'P':
-            return [0, 1]
+            return ['False', 'True']
         elif action == 'D':
-            return [0, 1]
+            return ['False', 'True']
+        elif action == 'callP':
+            return ['False', 'True']
 
     def plot_causal_model(self):
         nx.draw(self._causal_model, with_labels=True)
@@ -370,6 +353,8 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             return 4
         elif causal_action == 'D':
             return 5
+        elif causal_action == 'callP':
+            return 6
 
     ###############################################
     # Hierarchical section
