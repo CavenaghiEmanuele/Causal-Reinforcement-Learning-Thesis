@@ -1,7 +1,5 @@
 from pgmpy.models import BayesianModel
-from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
-from pgmpy.inference.CausalInference import CausalInference
 
 from typing import Dict, List
 
@@ -17,7 +15,7 @@ def causal_query(target:str, evidence:Dict, actions:List[str], model:BayesianMod
         z = set(model.get_parents(action))
 
         inference_engine = VariableElimination(model)
-        base_query = inference_engine.query(variables=[target, action], evidence=evidence, show_progress=False)
+        base_query = inference_engine.query(variables=[target], evidence={**evidence, **{action:'True'}}, show_progress=False)
 
         if len(z) != 0:
             adjustment_query = inference_engine.query(variables=z, show_progress=False)
