@@ -1,3 +1,4 @@
+from networkx.generators.triads import TRIAD_EDGES
 import numpy as np
 import operator
 
@@ -36,22 +37,13 @@ class CausalTD(TemporalDifference, ABC, object):
             model=env.get_causal_model()
             )
 
-        # For each action get the MAP value as dict {action1: (value:prob), action2: (value:prob), ...}
-        map = {}
-        for action in actions:
-            map.update({action : max(
-                {   
-                    value : query[action].get_value(**{target:0, action:value}) # target=0 --searching for-->  target=True (0=True, 1=False)
-                    for value in env.get_action_values(action)
-                }.items(),
-                key=operator.itemgetter(1))
-            })
+        # For each action get the MAP value as dict 
+        map = {action : query[action].get_value(**{target:'True'}) for action in actions}
 
         # Select the action with the highest MAP
         candidate = max(map.items(), key=operator.itemgetter(1))
 
         # Check if the candidate action probability is above a certain threshold
-        # and if it's better to do an action then do not
-        if candidate[1][1] > 0.4 and candidate[1][0] == 1:
+        if candidate[1] > 0.5:
             return env.causal_action_to_env_action(candidate[0])
         return None
