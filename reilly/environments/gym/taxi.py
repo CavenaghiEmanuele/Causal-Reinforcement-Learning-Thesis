@@ -29,6 +29,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
     _passenger_on_taxi: bool
     _confounders: bool
     _thief: bool
+    _intent: int # 0 = lead passenger, 1 = call police
 
     def __init__(self, build_causal_model:bool=False, confounders:bool=False):
         self._env = gym.make('Taxi-v3')
@@ -38,6 +39,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
 
         self._confounders = confounders
         self._thief = False
+        self._intent = 0
         if build_causal_model:
             self.build_causal_model()
 
@@ -81,6 +83,8 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
     def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
         if self._confounders: 
             self._thief = bool(random.getrandbits(1))
+            if self._thief: self._intent = 1
+            else: self._intent = 0
         if hierarchical:
             return (self._env.reset(), self._super_reset())
         return self._env.reset()
@@ -247,7 +251,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
                     'thief': ['False', 'True']
                     }
                     )
-            
+
             self._causal_model.add_cpds(cpd_thief, cpd_callP)
 
         else: # No confounding
@@ -292,7 +296,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         r = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
 
         if self._confounders:
-            r.update({'thief': str(self._thief)})
+            r.update({'thief': str(bool(self._intent))})
 
         if hierarchical and self._subgoal == 1:
             pp = {
@@ -339,12 +343,10 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         return actions
 
     def get_action_values(self, action):
-        if action == 'P':
-            return ['False', 'True']
-        elif action == 'D':
-            return ['False', 'True']
-        elif action == 'callP':
-            return ['False', 'True']
+        # P: ['False', 'True']
+        # D: ['False', 'True']
+        #callP: ['False', 'True']
+        return ['False', 'True']
 
     def plot_causal_model(self):
         nx.draw(self._causal_model, with_labels=True)
@@ -357,6 +359,9 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             return 5
         elif causal_action == 'callP':
             return 6
+
+    def get_agent_intent(self):
+        return self._intent
 
     ###############################################
     # Hierarchical section
