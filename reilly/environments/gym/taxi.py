@@ -327,7 +327,9 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             actions.append('callP')
     
         if hierarchical:
-            if self._subgoal == 1:
+            if self._subgoal == 0:
+                actions.extend(['P', 'D'])
+            elif self._subgoal == 1:
                 actions.append('P')
             elif self._subgoal == 2:
                 actions.append('D')
