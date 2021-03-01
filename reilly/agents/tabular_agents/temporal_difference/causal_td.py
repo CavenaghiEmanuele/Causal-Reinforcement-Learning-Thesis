@@ -17,11 +17,12 @@ class CausalTD(TemporalDifference, ABC, object):
         self._A = self._select_action(self._policy[init_state], state=init_state, env=kwargs['env'])
 
     def _select_action(self, policy_state, state, env, hierarchical:bool=False):
+        intent = env.get_agent_intent()
         try:
-            a = self._cache_inference[state]
+            a = self._cache_inference[(state, intent)]
         except:
             a = self._inferenced_selection(env=env, state=state, hierarchical=hierarchical)
-            self._cache_inference.update({state : a})
+            self._cache_inference.update({(state, intent) : a})
 
         if a == None:
             return np.random.choice(range(self._actions), p=policy_state)
