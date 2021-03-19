@@ -4,6 +4,7 @@ from .causal_environment import CausalEnvironment
 from .gym import *
 from .text import TextEnvironment, TextNeighbor
 from .medical_treatment import MedicalTreatment
+from .medical_treatment_collider import MedicalTreatmentCollider
 
 
 def ENVIRONMENTS():
