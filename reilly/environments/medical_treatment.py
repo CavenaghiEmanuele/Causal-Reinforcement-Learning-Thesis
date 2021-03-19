@@ -39,11 +39,11 @@ class MedicalTreatment(CausalEnvironment):
     _state: List[int]
     _step: int
     _max_step: int
-    _confounder: bool
+    _observe_confounder: bool
 
-    def __init__(self, build_causal_model:bool=False, confounder:bool=False, max_steps:int=100):
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True, max_steps:int=100):
         self._done = False
-        self._confounder = confounder
+        self._observe_confounder = observe_confounder
         self._state = [1, 0, 0]
         self._max_step = max_steps
 
@@ -58,7 +58,7 @@ class MedicalTreatment(CausalEnvironment):
 
     @property
     def states(self) -> int:
-        if self._confounder:
+        if self._observe_confounder:
             return 8
         else:
             return 2
@@ -74,7 +74,7 @@ class MedicalTreatment(CausalEnvironment):
         self._state = [1, random.randint(0,1), random.randint(0,1)]
         self._step = 0
         self._done = False
-        if self._confounder:
+        if self._observe_confounder:
             return self.encode(self._state)
         else:
             return self._state[0]
@@ -155,7 +155,7 @@ class MedicalTreatment(CausalEnvironment):
         if self._step > self._max_step:
             done = True
         
-        if self._confounder:
+        if self._observe_confounder:
             return self.encode(self._state), reward, done, {} # info = {}
         else:
             return self._state[0], reward, done, {} # info = {}
@@ -170,7 +170,7 @@ class MedicalTreatment(CausalEnvironment):
     ###############################################
     # Causal section
     ###############################################
-    '''
+    
     def build_causal_model(self):
         #################################
         # Defining the model structure
@@ -287,7 +287,7 @@ class MedicalTreatment(CausalEnvironment):
                 state_names={'D': ['False', 'True']}
             )
 
-        if self._confounders:
+        if self._observe_confounders:
             
             self._causal_model.add_edge('thief', 'G')
             self._causal_model.add_edge('callP', 'G')
@@ -366,7 +366,7 @@ class MedicalTreatment(CausalEnvironment):
         state = self.decode(state)
         r = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
 
-        if self._confounders:
+        if self._observe_confounders:
             r.update({'thief': str(bool(self._intent))})
 
         if hierarchical and self._subgoal == 1:
@@ -398,7 +398,7 @@ class MedicalTreatment(CausalEnvironment):
 
     def get_actions(self, hierarchical:bool=False):
         actions = []
-        if self._confounders:
+        if self._observe_confounders:
             actions.append('callP')
     
         if hierarchical:
@@ -433,4 +433,3 @@ class MedicalTreatment(CausalEnvironment):
 
     def get_agent_intent(self):
         return self._intent
-    '''
