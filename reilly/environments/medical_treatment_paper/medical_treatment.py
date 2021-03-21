@@ -1,6 +1,4 @@
 import networkx as nx
-from numpy.lib.utils import info
-import pylab as plt
 import random
 import numpy as np
 
