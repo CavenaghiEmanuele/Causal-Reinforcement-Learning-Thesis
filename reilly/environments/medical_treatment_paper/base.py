@@ -130,7 +130,7 @@ class Base(CausalEnvironment):
         reward = np.random.binomial(size=1, n=1, p= self._reward_probs[str(self._state + [action])])[0] # P(R=1)
 
         # Next state compute (only S, because E and M are confounders)
-        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str(self._state[0:1] + [action])])[0] # P(S=1)
+        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str([action, self._state[0]])])[0] # P(S=1)
                   
         # Done computation
         done = False
