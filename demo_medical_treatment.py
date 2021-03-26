@@ -19,49 +19,48 @@ def _run_q_learning(fake):
 if __name__ == '__main__':
     '''
     reward_probs = {
-                '[0, 0, 0, 0]': 0.2,
-                '[0, 0, 0, 1]': 0.9,
-                '[0, 0, 1, 0]': 0.9,
-                '[0, 0, 1, 1]': 0.2,
-                '[0, 1, 0, 0]': 0.9,
-                '[0, 1, 0, 1]': 0.2,
-                '[0, 1, 1, 0]': 0.2,
-                '[0, 1, 1, 1]': 0.9,
+                '[0, 0, 0, 0]': 0.5,
+                '[0, 0, 0, 1]': 0.5,
+                '[0, 0, 1, 0]': 0.5,
+                '[0, 0, 1, 1]': 0.5,
+                '[0, 1, 0, 0]': 0.5,
+                '[0, 1, 0, 1]': 0.5,
+                '[0, 1, 1, 0]': 0.5,
+                '[0, 1, 1, 1]': 0.5,
 
-                '[1, 0, 0, 0]': 0.8,
-                '[1, 0, 0, 1]': 0.1,
-                '[1, 0, 1, 0]': 0.1,
-                '[1, 0, 1, 1]': 0.8,
-                '[1, 1, 0, 0]': 0.1,
-                '[1, 1, 0, 1]': 0.8,
-                '[1, 1, 1, 0]': 0.8,
-                '[1, 1, 1, 1]': 0.1,
+                '[1, 0, 0, 0]': 0.5,
+                '[1, 0, 0, 1]': 0.5,
+                '[1, 0, 1, 0]': 0.5,
+                '[1, 0, 1, 1]': 0.5,
+                '[1, 1, 0, 0]': 0.5,
+                '[1, 1, 0, 1]': 0.5,
+                '[1, 1, 1, 0]': 0.5,
+                '[1, 1, 1, 1]': 0.5,
             }
     env = rl.MedicalTreatment(observe_confounder=True, reward_probs=reward_probs)
     '''
     ####################################
     # PARAMETERS
     ####################################
-    episodes = 30
-    test_offset = 2
+    episodes = 100
+    test_offset = 10
     test_sample = 100
 
-    env_type = 'bigger_collider' # base, collider, bigger_collider
+    env_type = 'collider_in_time' # base, collider_in_time, 
     observe_confounder = False
     max_steps = 1000
 
-    alpha = 0.1
-    epsilon = 0.1
-    epsilon_decay = 0.99
+    alpha = 0.005
+    epsilon = 1
+    epsilon_decay = 0.97
     gamma = 1
     ####################################
 
     if env_type == 'base':
-        env = rl.MedicalTreatment(observe_confounder=observe_confounder)
-    elif env_type == 'collider':
-        env = rl.MedicalTreatmentCollider(observe_confounder=observe_confounder)
-    elif env_type == 'bigger_collider':
-        env = rl.MedicalTreatmentBiggerCollider(observe_confounder=observe_confounder)
+        env = rl.Base(observe_confounder=observe_confounder)
+    elif env_type == 'collider_in_time':
+        env = rl.ColliderInTime(observe_confounder=observe_confounder)
+
 
     results = []
 
@@ -91,11 +90,10 @@ if __name__ == '__main__':
             episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
     )
     '''
-    
     ####################################
     # A lot of Vanilla Q-Learning
     ####################################
-    for _ in range(9):
+    for _ in range(30):
         agent = rl.QLearning(
             states=env.states, actions=env.actions,
             alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)

@@ -1,3 +1,2 @@
-from .medical_treatment import MedicalTreatment
-from .medical_treatment_collider import MedicalTreatmentCollider
-from .medical_treatment_bigger_collider import MedicalTreatmentBiggerCollider
+from .base import Base
+from .collider_in_time import ColliderInTime

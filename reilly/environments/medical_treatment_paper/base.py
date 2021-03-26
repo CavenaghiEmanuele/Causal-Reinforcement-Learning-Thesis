@@ -30,7 +30,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class MedicalTreatment(CausalEnvironment):
+class Base(CausalEnvironment):
 
     _done: bool
     _state: List[int]

@@ -5,7 +5,7 @@ from typing import Dict, List
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 
-from .medical_treatment import MedicalTreatment
+from .base import Base
 
 '''
 States:
@@ -27,7 +27,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class MedicalTreatmentCollider(MedicalTreatment):
+class ColliderInTime(Base):
 
     _done: bool
     _state: List[int]
@@ -87,17 +87,17 @@ class MedicalTreatmentCollider(MedicalTreatment):
         # P(M=1) - format: X, Y
         self._next_M_probs = {
             '[0, 0]': 0.1,
-            '[0, 1]': 0.7,
-            '[1, 0]': 0.8,
-            '[1, 1]': 0.2,
+            '[0, 1]': 0.9,
+            '[1, 0]': 0.9,
+            '[1, 1]': 0.1,
         }
 
         # P(E=1) - format: X, Y
         self._next_E_probs = {
-            '[0, 0]': 0.9,
+            '[0, 0]': 0.7,
             '[0, 1]': 0.3,
-            '[1, 0]': 0.2,
-            '[1, 1]': 0.8,
+            '[1, 0]': 0.3,
+            '[1, 1]': 0.7,
         }
 
         if build_causal_model:
