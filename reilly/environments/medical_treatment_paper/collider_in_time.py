@@ -109,8 +109,8 @@ class ColliderInTime(Base):
         # Reward computation
         reward = np.random.binomial(size=1, n=1, p= self._reward_probs[str(self._state + [action])])[0] # P(R=1)
 
-        # Next state compute (only S, because E and M are confounders)
-        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str(self._state[0:1] + [action])])[0] # P(S=1)
+        # Next state compute
+        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str([action, self._state[0]])])[0] # P(S=1)
 
         # Compute M = self._state[1]
         self._state[1] = np.random.binomial(size=1, n=1, p= self._next_M_probs[str([action, reward])])[0] # P(M=1)
@@ -128,35 +128,3 @@ class ColliderInTime(Base):
             return self.encode(self._state), reward, done, {} # info = {}
         else:
             return self._state[0], reward, done, {} # info = {}
-    
-
-    ###############################################
-    # Causal section
-    ###############################################
-    
-    def build_causal_model(self):
-        pass
-
-    def get_causal_model(self):
-        pass
-
-    def get_target(self, hierarchical:bool=False):
-        pass
-    
-    def get_evidence(self, state, hierarchical:bool=False):
-        pass
-
-    def get_actions(self, hierarchical:bool=False):
-        pass
-
-    def get_action_values(self, action):
-        pass
-
-    def plot_causal_model(self):
-        pass
-
-    def causal_action_to_env_action(self, causal_action):
-        pass
-
-    def get_agent_intent(self):
-        pass
