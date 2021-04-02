@@ -46,8 +46,8 @@ if __name__ == '__main__':
     test_offset = 10
     test_sample = 100
 
-    env_type = 'collider_in_time' # base, collider_in_time, 
-    observe_confounder = False
+    env_type = 'confounder_no_influence' # base, collider_in_time, confounder_in_time, confounder_no_influence
+    observe_confounder = True
     max_steps = 1000
 
     alpha = 0.005
@@ -60,7 +60,10 @@ if __name__ == '__main__':
         env = rl.Base(observe_confounder=observe_confounder)
     elif env_type == 'collider_in_time':
         env = rl.ColliderInTime(observe_confounder=observe_confounder)
-
+    elif env_type == 'confounder_in_time':
+        env = rl.ConfounderInTime(observe_confounder=observe_confounder)
+    elif env_type == 'confounder_no_influence':
+        env = rl.ConfounderNoInfluence(observe_confounder=observe_confounder)
 
     results = []
 
@@ -93,7 +96,7 @@ if __name__ == '__main__':
     ####################################
     # A lot of Vanilla Q-Learning
     ####################################
-    for _ in range(30):
+    for _ in range(9):
         agent = rl.QLearning(
             states=env.states, actions=env.actions,
             alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
