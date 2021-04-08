@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import trace
 from reilly.agents.tabular_agents.temporal_difference import q_learning
 import reilly as rl
 
@@ -46,7 +47,8 @@ if __name__ == '__main__':
     test_offset = 10
     test_sample = 100
 
-    env_type = 'confounder_no_influence' # base, collider_in_time, confounder_in_time, confounder_no_influence
+    # base, collider, collider_in_time, confounder_in_time, confounder_no_influence_cause_reward, confounder_no_influence
+    env_type = 'confounder_no_influence' 
     observe_confounder = True
     max_steps = 1000
 
@@ -58,10 +60,14 @@ if __name__ == '__main__':
 
     if env_type == 'base':
         env = rl.Base(observe_confounder=observe_confounder)
+    elif env_type == 'collider':
+        env = rl.Collider(observe_confounder=observe_confounder)
     elif env_type == 'collider_in_time':
         env = rl.ColliderInTime(observe_confounder=observe_confounder)
     elif env_type == 'confounder_in_time':
         env = rl.ConfounderInTime(observe_confounder=observe_confounder)
+    elif env_type == 'confounder_no_influence_cause_reward':
+        env = rl.ConfounderNoInfluenceCauseReward(observe_confounder=observe_confounder)
     elif env_type == 'confounder_no_influence':
         env = rl.ConfounderNoInfluence(observe_confounder=observe_confounder)
 
@@ -78,21 +84,7 @@ if __name__ == '__main__':
         session.run(
             episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
     )
-    '''
-    ####################################
-    # Vanilla Q-Learning
-    ####################################
-    agent = rl.QLearning(
-        states=env.states, actions=env.actions,
-        alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
 
-    session = rl.Session(env=env, agent=agent, max_steps=max_steps)
-
-    results.append(
-        session.run(
-            episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-    )
-    '''
     ####################################
     # A lot of Vanilla Q-Learning
     ####################################

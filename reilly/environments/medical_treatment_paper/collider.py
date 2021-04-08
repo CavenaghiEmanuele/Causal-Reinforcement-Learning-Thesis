@@ -1,7 +1,6 @@
 import numpy as np
-import random
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
@@ -28,7 +27,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ConfounderNoInfluence(Base):
+class Collider(Base):
 
     _done: bool
     _state: List[int]
@@ -37,6 +36,8 @@ class ConfounderNoInfluence(Base):
     _observe_confounder: bool
     _reward_probs: Dict
     _next_state_probs: Dict
+    _next_M_probs: Dict
+    _next_E_probs: Dict
 
     def __init__(
         self, 
@@ -55,50 +56,54 @@ class ConfounderNoInfluence(Base):
             # P(R=1) - format: S, X
             self._reward_probs = {
                 '[0, 0]': 0.2,
-                '[0, 1]': 0.8,
-                '[1, 0]': 0.8,
+                '[0, 1]': 0.9,
+                '[1, 0]': 0.9,
                 '[1, 1]': 0.2,
-                }
+            }
         else:
             self._reward_probs = reward_probs
 
-        # P(S=1) - format: X, S, M, E
+        # P(S=1) - format: X, S
         self._next_state_probs = {
-            '[0, 0, 0, 0]': 0.3,
-            '[0, 0, 0, 1]': 0.1,
-            '[0, 0, 1, 0]': 0.1,
-            '[0, 0, 1, 1]': 0.3,
+            '[0, 0]': 0.1,
+            '[0, 1]': 0.7,
+            '[1, 0]': 0.3,
+            '[1, 1]': 0.2,
+        }
 
-            '[0, 1, 0, 0]': 0.7,
-            '[0, 1, 0, 1]': 0.9,
-            '[0, 1, 1, 0]': 0.9,
-            '[0, 1, 1, 1]': 0.7,
+        # P(M=1) - format: X, Y
+        self._next_M_probs = {
+            '[0, 0]': 0.1,
+            '[0, 1]': 0.9,
+            '[1, 0]': 0.9,
+            '[1, 1]': 0.1,
+        }
 
-            '[1, 0, 0, 0]': 0.5,
-            '[1, 0, 0, 1]': 0.3,
-            '[1, 0, 1, 0]': 0.3,
-            '[1, 0, 1, 1]': 0.5,
-
-            '[1, 1, 0, 0]': 0.2,
-            '[1, 1, 0, 1]': 0.4,
-            '[1, 1, 1, 0]': 0.4,
-            '[1, 1, 1, 1]': 0.2
-            }
+        # P(E=1) - format: X, Y
+        self._next_E_probs = {
+            '[0, 0]': 0.7,
+            '[0, 1]': 0.3,
+            '[1, 0]': 0.3,
+            '[1, 1]': 0.7,
+        }
 
         if build_causal_model:
             self.build_causal_model()
 
         self.reset()
 
-
     def _run_step(self, action):
-
         # Reward computation
         reward = np.random.binomial(size=1, n=1, p= self._reward_probs[str([self._state[0], action])])[0] # P(R=1)
 
-        # Next state compute 
-        # S = self._state[0]
-        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str([action] + self._state)])[0] # P(S=1)
+        # Next state compute
+        self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str([action, self._state[0]])])[0] # P(S=1)
+
+        # Compute M = self._state[1]
+        self._state[1] = np.random.binomial(size=1, n=1, p= self._next_M_probs[str([action, reward])])[0] # P(M=1)
+
+        # Compute E = self._state[2]
+        self._state[2] = np.random.binomial(size=1, n=1, p= self._next_E_probs[str([action, reward])])[0] # P(E=1)
 
         # Done computation
         done = False
