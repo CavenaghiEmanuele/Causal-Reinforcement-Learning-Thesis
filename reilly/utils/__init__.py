@@ -1,2 +1,2 @@
-from .plot import plot, plot_mean, plot_results
+from .plot import *
 from .causal_inference import *
