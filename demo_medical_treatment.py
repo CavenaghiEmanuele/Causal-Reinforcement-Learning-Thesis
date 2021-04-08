@@ -8,38 +8,8 @@ import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
 
 
-def _run_q_learning(fake):
-    agent = rl.QLearning(
-        states=env.states, actions=env.actions,
-        alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
-
-    session = rl.Session(env=env, agent=agent, max_steps=max_steps)
-    return session.run(episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-
-
 if __name__ == '__main__':
-    '''
-    reward_probs = {
-                '[0, 0, 0, 0]': 0.5,
-                '[0, 0, 0, 1]': 0.5,
-                '[0, 0, 1, 0]': 0.5,
-                '[0, 0, 1, 1]': 0.5,
-                '[0, 1, 0, 0]': 0.5,
-                '[0, 1, 0, 1]': 0.5,
-                '[0, 1, 1, 0]': 0.5,
-                '[0, 1, 1, 1]': 0.5,
 
-                '[1, 0, 0, 0]': 0.5,
-                '[1, 0, 0, 1]': 0.5,
-                '[1, 0, 1, 0]': 0.5,
-                '[1, 0, 1, 1]': 0.5,
-                '[1, 1, 0, 0]': 0.5,
-                '[1, 1, 0, 1]': 0.5,
-                '[1, 1, 1, 0]': 0.5,
-                '[1, 1, 1, 1]': 0.5,
-            }
-    env = rl.MedicalTreatment(observe_confounder=True, reward_probs=reward_probs)
-    '''
     ####################################
     # PARAMETERS
     ####################################
@@ -88,7 +58,7 @@ if __name__ == '__main__':
     ####################################
     # A lot of Vanilla Q-Learning
     ####################################
-    for _ in range(9):
+    for _ in range(2):
         agent = rl.QLearning(
             states=env.states, actions=env.actions,
             alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -99,20 +69,15 @@ if __name__ == '__main__':
             session.run(
                 episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
         )
-    
-    '''
-    parms = [i for i in range(100)]
-    pool = Pool(cpu_count())
-    multithread_result = pool.map(_run_q_learning, parms)
-    pool.close()
-    pool.join()
 
-    results.extend(multithread_result)
-    '''
     ####################################
     # PLOT
     ####################################
     results = pd.concat(results)
 
-    rl.plot(results)
+    # Save results to csv
+    results.to_csv('results/' + env_type + '.csv', index=False)
+
+    #rl.plot(results)
     #rl.plot_mean(results, n=100)
+    rl.plot_results(results)
