@@ -24,7 +24,7 @@ def plot(data: pd.DataFrame):
     plt.show()
 
 
-def plot_results(data: pd.DataFrame):
+def plot_medical_treatment_results(data: pd.DataFrame, title: str):
     data = data.drop('step', axis=1).\
         groupby(['test', 'sample', 'agent']).sum()
     data = data.groupby(['test', 'agent']).mean()
@@ -32,7 +32,7 @@ def plot_results(data: pd.DataFrame):
     data = data.groupby('agent')
     for test in tests:
         agents = data[test].apply(list).to_dict()
-        plt.figure(test)
+        plt.figure(title)
         unique_legend = True
         for agent in agents:
             label = re.search('Params: (.*)', agent).group(1)
@@ -45,10 +45,11 @@ def plot_results(data: pd.DataFrame):
                     plt.plot(agents[agent], 'r')
                 unique_legend = False
 
-        plt.ylabel(test)
+        plt.ylabel('Cumulative Reward')
         plt.xlabel('Number of tests')
         plt.grid(linestyle='--', linewidth=0.5, color='.25', zorder=-10)
-
+    
+    plt.title(title)
     plt.legend(loc='upper left')
     plt.show()
 
