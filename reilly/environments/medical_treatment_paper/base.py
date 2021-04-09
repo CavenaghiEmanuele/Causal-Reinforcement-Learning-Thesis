@@ -160,23 +160,29 @@ class Base(CausalEnvironment):
     def get_causal_model(self):
         pass
 
-    def get_target(self, hierarchical:bool=False):
+    def get_target(self):
         pass
     
-    def get_evidence(self, state, hierarchical:bool=False):
+    def get_evidence(self, state):
         pass
 
-    def get_actions(self, hierarchical:bool=False):
+    def get_action(self):
         pass
 
-    def get_action_values(self, action):
+    def get_action_values(self):
         pass
 
+    def get_confounder(self):
+        pass
+
+    def get_confounder_values(self):
+        pass
+    
+    def causal_confounder_to_env_confounder(self, causal_confounder):
+        pass
+    
     def plot_causal_model(self):
         pass
 
     def causal_action_to_env_action(self, causal_action):
-        pass
-
-    def get_agent_intent(self):
         pass

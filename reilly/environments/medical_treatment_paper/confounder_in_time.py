@@ -265,10 +265,10 @@ class ConfounderInTime(Base):
             'Et': self._state[2],
         }
 
-    def get_actions(self):
-        return ['Xt+1']
+    def get_action(self):
+        return 'Xt+1'
 
-    def get_action_values(self, action):
+    def get_action_values(self):
         return ['no drug', 'give drug']
 
     def plot_causal_model(self):
@@ -281,5 +281,14 @@ class ConfounderInTime(Base):
         elif causal_action == 'give drug':
             return 1
 
+    def get_confounder(self):
+        return None
+
+    def get_confounder_values(self):
+        return None
+    
+    def causal_confounder_to_env_confounder(self, causal_confounder):
+        return None
+    
     def get_agent_intent(self):
         return 0

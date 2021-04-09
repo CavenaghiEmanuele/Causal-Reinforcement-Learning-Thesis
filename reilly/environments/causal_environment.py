@@ -18,22 +18,31 @@ class CausalEnvironment(Environment, ABC):
         pass
 
     @abstractmethod
-    def get_target(self, hierarchical:bool=False):
+    def get_target(self):
         pass
 
     @abstractmethod
-    def get_evidence(self, state, hierarchical:bool=False):
+    def get_evidence(self, state):
         pass
 
     @abstractmethod
-    def get_actions(self, hierarchical:bool=False):
+    def get_action(self):
         pass
 
     @abstractmethod
-    def get_action_values(self, action):
+    def get_action_values(self):
         pass
 
-    def get_agent_intent(self):
+    @abstractmethod
+    def get_confounder(self):
+        pass
+
+    @abstractmethod
+    def get_confounder_values(self):
+        pass
+    
+    @abstractmethod
+    def causal_confounder_to_env_confounder(self, causal_confounder):
         pass
     
     @abstractmethod
