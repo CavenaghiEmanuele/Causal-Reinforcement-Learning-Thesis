@@ -1,7 +1,9 @@
 import numpy as np
+import networkx as nx
+import matplotlib as plt
 import random
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
