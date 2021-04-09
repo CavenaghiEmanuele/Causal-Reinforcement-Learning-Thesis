@@ -16,35 +16,37 @@ class CausalTD(TemporalDifference, ABC, object):
         self._S = init_state
         self._A = self._select_action(self._policy[init_state], state=init_state, env=kwargs['env'])
 
-    def _select_action(self, policy_state, state, env, hierarchical:bool=False):
+    def _select_action(self, policy_state, state, env):
         intent = env.get_agent_intent()
         try:
             a = self._cache_inference[(state, intent)]
         except:
-            a = self._inferenced_selection(env=env, state=state, hierarchical=hierarchical)
+            a = self._inferenced_selection(env=env, state=state)
             self._cache_inference.update({(state, intent) : a})
 
         if a == None:
             return np.random.choice(range(self._actions), p=policy_state)
         return a
 
-    def _inferenced_selection(self, env, state, hierarchical:bool=False):
-        target = env.get_target(hierarchical=hierarchical)
-        actions = env.get_actions(hierarchical=hierarchical)
+    def _inferenced_selection(self, env, state):
+        target = env.get_target()
+        actions = env.get_actions()
         query = causal_query(
             target=target,
-            evidence=env.get_evidence(state, hierarchical=hierarchical),
-            actions=actions,
+            evidence=env.get_evidence(state),
+            actions={action:env.get_action_values(action) for action in actions},
             model=env.get_causal_model()
             )
 
-        # For each action get the MAP value as dict 
-        map = {action : query[action].get_value(**{target:'True'}) for action in actions}
+        # Get the value for each possible action as dict 
+        values = {
+            value : query[action].get_value(**{target:env.get_good_target_value(), action:value}) 
+            for action in actions
+            for value in env.get_action_values(action)
+            }
 
         # Select the action with the highest MAP
-        candidate = max(map.items(), key=operator.itemgetter(1))
+        candidate = max(values.items(), key=operator.itemgetter(1))
 
-        # Check if the candidate action probability is above a certain threshold
-        if candidate[1] > 0.5:
-            return env.causal_action_to_env_action(candidate[0])
-        return None
+        return env.causal_action_to_env_action(candidate[0])
+
