@@ -8,7 +8,6 @@ from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 
 from .abstract_gym import GymEnvironment
-from ..hierarchical_environment import HierarchicalEnvironment
 from ..causal_environment import CausalEnvironment
 
 
@@ -22,7 +21,7 @@ There are 6 discrete deterministic actions:
 - 4: pickup passenger
 - 5: drop off passenger
 '''
-class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
+class Taxi(GymEnvironment, CausalEnvironment):
 
     _done: bool
     _subgoal: int
@@ -51,7 +50,7 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             return self._env.action_space.n + 1
         return self._env.action_space.n
 
-    def run_step(self, action, hierarchical:bool=False, *args, **kwargs):
+    def run_step(self, action, *args, **kwargs):
 
         info = {'wins': 0}
 
@@ -71,29 +70,16 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
             info['wins'] = 1
         self._done == done
 
-        # Hierarchical modification of next state and reward
-        if hierarchical:              
-            if self._subgoal == 1 and (not self._passenger_on_taxi) and self.decode(next_state)[2] == 4:
-                agent_reward = 5
-                self._passenger_on_taxi = True
-            next_state += self.states * self._subgoal
-
         return next_state, reward, agent_reward, done, info
 
-    def reset(self, hierarchical:bool=False, *args, **kwargs) -> int:
+    def reset(self, *args, **kwargs) -> int:
         if self._confounders: 
             self._thief = bool(random.getrandbits(1))
             if self._thief: self._intent = 1
             else: self._intent = 0
-        if hierarchical:
-            return (self._env.reset(), self._super_reset())
         return self._env.reset()
 
-    def decode(self, state, hierarchical:bool=False):
-        if hierarchical:
-            while state > self.states:
-                state -= self.states
-            return tuple(self._env.decode(state))
+    def decode(self, state):
         return tuple(self._env.decode(state))
 
     ###############################################
@@ -282,15 +268,10 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
     def get_causal_model(self):
         return self._causal_model
 
-    def get_target(self, hierarchical:bool=False):
-        if hierarchical and self._subgoal == 1:
-            return 'inC'
+    def get_target(self):
         return 'G'
     
-    def get_evidence(self, state, hierarchical:bool=False):
-        if hierarchical:
-            while state >= 500:
-                state -= self.states
+    def get_evidence(self, state):
 
         state = self.decode(state)
         r = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
@@ -298,22 +279,13 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         if self._confounders:
             r.update({'thief': str(bool(self._intent))})
 
-        if hierarchical and self._subgoal == 1:
-            pp = {
-                0 : {'PP' : 'state ' + str(0)},
-                1 : {'PP' : 'state ' + str(4)},
-                2 : {'PP' : 'state ' + str(20)},
-                3 : {'PP' : 'state ' + str(23)},
-                4 : {'PP' : 'state ' + str(state[0]*5 + state[1])}
-            }
-        else:
-            pp = {
-                0 : {'PP' : 'state ' + str(0), 'inC' : 'False'},
-                1 : {'PP' : 'state ' + str(4), 'inC' : 'False'},
-                2 : {'PP' : 'state ' + str(20), 'inC' : 'False'},
-                3 : {'PP' : 'state ' + str(23), 'inC' : 'False'},
-                4 : {'PP' : 'state ' + str(state[0]*5 + state[1]), 'inC' : 'True'}
-            }
+        pp = {
+            0 : {'PP' : 'state ' + str(0), 'inC' : 'False'},
+            1 : {'PP' : 'state ' + str(4), 'inC' : 'False'},
+            2 : {'PP' : 'state ' + str(20), 'inC' : 'False'},
+            3 : {'PP' : 'state ' + str(23), 'inC' : 'False'},
+            4 : {'PP' : 'state ' + str(state[0]*5 + state[1]), 'inC' : 'True'}
+        }
 
         r.update(pp[state[2]])
         pd = {
@@ -325,21 +297,10 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
         r.update(pd[state[3]])
         return r
 
-    def get_actions(self, hierarchical:bool=False):
-        actions = []
+    def get_actions(self):
+        actions = ['P', 'D']
         if self._confounders:
             actions.append('callP')
-    
-        if hierarchical:
-            if self._subgoal == 0:
-                actions.extend(['P', 'D'])
-            elif self._subgoal == 1:
-                actions.append('P')
-            elif self._subgoal == 2:
-                actions.append('D')
-            return actions
-        
-        actions.extend(['P', 'D'])
         return actions
 
     def get_action_values(self, action):
@@ -362,62 +323,3 @@ class Taxi(GymEnvironment, HierarchicalEnvironment, CausalEnvironment):
 
     def get_agent_intent(self):
         return self._intent
-
-    ###############################################
-    # Hierarchical section
-    ###############################################
-
-    @property
-    def states_hierarchical(self) -> int:
-        return self.states * 3
-
-    # State 0: no subgoal
-    # State 1: subgoal passenger in cab
-    # State 2: subgoal reach global goal
-    # 0 <--> 1 <--> 2
-    @property
-    def super_states(self) -> int:
-        return 3
-
-    # Action 0: stay in the same state
-    # Action 1: move in left state
-    # Action 2: move in right state
-    @property
-    def super_actions(self) -> int:
-        return 3
-
-    def _super_reset(self, *args, **kwargs) -> int:
-        self._subgoal = 0
-        self._done = False
-        self._passenger_on_taxi = False
-        return 0 #Starting state with no subgoal
-
-    # next_state, reward, done, info
-    def super_run_step(self, action, cum_reward, *args, **kwargs):
-        # action 0 stay in the same state = do nothing
-        if action == 1:
-            self._subgoal -= 1
-            if self._subgoal < 0:
-                self._subgoal = 0
-        elif action == 2:
-            self._subgoal += 1
-            if self._subgoal >= 2:
-                self._subgoal = 2
-
-        if self._subgoal == 2:
-            reward = max(0, cum_reward)
-            return (self._subgoal, reward + 1, None, None)
-        return (self._subgoal, 0, None, None)
-        
-
-    def super_reach_current_subgoal(self, *args, **kwargs):
-        if self._subgoal == 0:
-            return True
-        elif self._subgoal == 1 and self._passenger_on_taxi:
-            return True
-        elif self._subgoal == 2 and self._done:
-            return True
-        return False
-
-    def get_current_subgoal(self):
-        return self._subgoal
