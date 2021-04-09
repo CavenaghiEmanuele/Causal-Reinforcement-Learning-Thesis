@@ -140,3 +140,144 @@ class ConfounderInTime(Base):
             return self.encode(self._state), reward, done, {} # info = {}
         else:
             return self._state[0], reward, done, {} # info = {}
+    
+
+    ###############################################
+    # Causal section
+    ###############################################
+    
+    def build_causal_model(self):
+
+        self._causal_model = BayesianModel(
+            [               
+                ('Mt', 'Mt+1'),
+                ('Mt', 'Xt+1'),
+
+                ('Et', 'Et+1'),
+                ('Et', 'Xt+1'),
+
+                ('St+1', 'Xt+1'),
+                ('St+1', 'Yt+1'),
+
+                ('Xt+1', 'Yt+1'),
+                ('Xt+1', 'Mt+1'),
+                ('Xt+1', 'Et+1'),
+
+                ('Et+1', 'Yt+1'),
+                ('Mt+1', 'Yt+1')
+            ])
+
+        cpd_Mt = TabularCPD(
+            variable='Mt',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'Mt':['positive', 'negative']})
+        cpd_Et = TabularCPD(
+            variable='Et',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'Et':['wealthy', 'poor']})
+        cpd_St_1 = TabularCPD(
+            variable='St+1',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'St+1':['low', 'high']})
+        cpd_Xt_1 = TabularCPD(
+            variable='Xt+1',
+            variable_card=2,
+            values=[
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                ],
+            evidence=['Mt', 'Et', 'St+1'],
+            evidence_card=[2,2,2],
+            state_names={
+                'Xt+1':['no drug', 'give drug'],
+                'Mt':['positive', 'negative'],
+                'Et':['wealthy', 'poor'],
+                'St+1':['low', 'high']
+                })
+        cpd_Mt_1 = TabularCPD(
+            variable='Mt+1',
+            variable_card=2,
+            values=[
+                [0.3, 0.8, 0.7, 0.8],
+                [0.7, 0.2, 0.3, 0.2]
+                ],
+            evidence=['Xt+1', 'Mt'],
+            evidence_card=[2,2],
+            state_names={
+                'Mt+1':['positive', 'negative'],
+                'Xt+1':['no drug', 'give drug'],
+                'Mt':['positive', 'negative']
+                })
+        cpd_Et_1 = TabularCPD(
+            variable='Et+1',
+            variable_card=2,
+            values=[
+                [0.7, 0.8, 0.3, 0.8],
+                [0.3, 0.2, 0.7, 0.2]
+                ],
+            evidence=['Xt+1', 'Et'],
+            evidence_card=[2,2],
+            state_names={
+                'Et+1':['wealthy', 'poor'],
+                'Xt+1':['no drug', 'give drug'],
+                'Et':['wealthy', 'poor']
+                })
+        cpd_Yt_1 = TabularCPD(
+            variable='Yt+1',
+            variable_card=2,
+            values=[
+                [0.8, 0.1, 0.1, 0.8, 0.2, 0.7, 0.7, 0.2, 0.3, 0.8, 0.8, 0.3, 0.9, 0.2, 0.2, 0.9],
+                [0.2, 0.9, 0.9, 0.2, 0.8, 0.3, 0.3, 0.8, 0.7, 0.2, 0.2, 0.7, 0.1, 0.8, 0.8, 0.1]
+                ],
+            evidence=['St+1', 'Mt+1', 'Et+1', 'Xt+1'],
+            evidence_card=[2, 2, 2, 2],
+            state_names={
+                'Yt+1':['not healthy', 'healthy'],
+                'St+1':['low', 'high'],
+                'Mt+1':['positive', 'negative'],
+                'Et+1':['wealthy', 'poor'],
+                'Xt+1':['no drug', 'give drug']
+                })
+
+        self._causal_model.add_cpds(
+            cpd_Mt, cpd_Et, cpd_St_1, cpd_Xt_1, cpd_Mt_1, cpd_Et_1, cpd_Yt_1)
+        
+        self._causal_model.check_model()
+
+    def get_causal_model(self):
+        return self._causal_model
+
+    def get_target(self):
+        return 'Yt+1'
+    
+    def get_good_target_value(self):
+        return 'healthy'
+
+    def get_evidence(self, state):
+        return {
+            'St+1': self._state[0],
+            'Mt': self._state[1],
+            'Et': self._state[2],
+        }
+
+    def get_actions(self):
+        return ['Xt+1']
+
+    def get_action_values(self, action):
+        return ['no drug', 'give drug']
+
+    def plot_causal_model(self):
+        nx.draw(self._causal_model, with_labels=True)
+        plt.show()
+
+    def causal_action_to_env_action(self, causal_action):
+        if causal_action == 'no drug':
+            return 0
+        elif causal_action == 'give drug':
+            return 1
+
+    def get_agent_intent(self):
+        return 0
