@@ -14,16 +14,18 @@ if __name__ == '__main__':
     test_offset = 10
     test_sample = 100
 
-    
+    '''
     list_env = [
-        'base', 
-        'collider', 
-        #'collider_in_time', 
-        'confounder_in_time', 
-        'confounder_no_influence_cause_reward', 
+        'base',
+        'collider',
+        #'collider_in_time',
+        'confounder_in_time',
+        'confounder_in_time2',
+        'confounder_no_influence_cause_reward',
         'confounder_no_influence']
-    #list_env = ['base']
-    observe_confounder = False
+    '''
+    list_env = ['confounder_in_time']
+    observe_confounder = True
     max_steps = 1000
 
     alpha = 0.005
@@ -41,14 +43,16 @@ if __name__ == '__main__':
         elif env_type == 'collider_in_time':
             env = rl.ColliderInTime(observe_confounder=observe_confounder)
         elif env_type == 'confounder_in_time':
-            env = rl.ConfounderInTime(observe_confounder=observe_confounder)
+            env = rl.ConfounderInTime(observe_confounder=observe_confounder, build_causal_model=True)
+        elif env_type == 'confounder_in_time2':
+            env = rl.ConfounderInTime2(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_no_influence_cause_reward':
             env = rl.ConfounderNoInfluenceCauseReward(observe_confounder=observe_confounder)
         elif env_type == 'confounder_no_influence':
             env = rl.ConfounderNoInfluence(observe_confounder=observe_confounder)
 
         results = []
-
+        
         ####################################
         # Random Agent
         ####################################
@@ -60,6 +64,23 @@ if __name__ == '__main__':
             session.run(
                 episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
         )
+        
+        ####################################
+        # A lot of Causal Q-Learning
+        ####################################
+        for _ in range(30):
+            agent = rl.CausalQLearning(
+                states=env.states, actions=env.actions,
+                alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
+
+            session = rl.Session(env=env, agent=agent, max_steps=max_steps)
+
+            results.append(
+                session.run(
+                    episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
+            )
+
+            #print(agent._cache_inference)
 
         ####################################
         # A lot of Vanilla Q-Learning
@@ -84,6 +105,5 @@ if __name__ == '__main__':
         # Save results to csv
         results.to_csv('results/' + env_type + '.csv', index=False)
 
-        #rl.plot(results)
+        rl.plot(results)
         #rl.plot_mean(results, n=100)
-        #rl.plot_results(results)
