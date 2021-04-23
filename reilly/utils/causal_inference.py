@@ -1,4 +1,3 @@
-from pgmpy import base
 from pgmpy.models import BayesianModel
 from pgmpy.inference import VariableElimination
 
@@ -26,9 +25,3 @@ def causal_query(target:str, evidence:Dict, actions:Dict, model:BayesianModel):
         query.marginalize(z)
         queries.update({action : query})
     return queries
-
-
-def confounder_query(confounder:str, evidence:Dict, action:Dict, model:BayesianModel):
-    inference_engine = VariableElimination(model)
-    query = inference_engine.query(variables=[confounder], evidence={**evidence, **action}, show_progress=False)
-    return query

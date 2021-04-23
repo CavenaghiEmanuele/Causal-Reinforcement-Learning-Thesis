@@ -280,15 +280,6 @@ class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
             return 0
         elif causal_action == 'give drug':
             return 1
-
-    def get_confounder(self):
-        return None
-
-    def get_confounder_values(self):
-        return None
-    
-    def causal_confounder_to_env_confounder(self, causal_confounder):
-        return None
     
     def get_agent_intent(self):
         return 0

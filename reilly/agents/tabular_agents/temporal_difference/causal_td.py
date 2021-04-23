@@ -4,7 +4,7 @@ import operator
 from abc import ABC
 
 from .temporal_difference import TemporalDifference
-from ....utils.causal_inference import causal_query, confounder_query
+from ....utils.causal_inference import causal_query
 
 
 class CausalTD(TemporalDifference, ABC, object):
@@ -18,22 +18,11 @@ class CausalTD(TemporalDifference, ABC, object):
 
     def _select_action(self, policy_state, state, env):
 
-        intent = np.random.choice(range(self._actions), p=policy_state)
         try:
-            confounder_value = self._confounder_cache[(state, intent)]
-        except:
-            confounder_value = self._predict_confounder(
-                env=env,
-                state=state,
-                intent=intent
-                )
-            self._confounder_cache.update({(state, intent) : confounder_value})
-
-        try:
-            a = self._cache_inference[(state, confounder_value)]
+            a = self._cache_inference[(state)]
         except:
             a = self._inferenced_selection(env=env, state=state)
-            self._cache_inference.update({(state, confounder_value) : a})
+            self._cache_inference.update({(state) : a})
 
         if a == None:
             return np.random.choice(range(self._actions), p=policy_state)
@@ -58,21 +47,3 @@ class CausalTD(TemporalDifference, ABC, object):
         # Select the action with the highest MAP
         candidate = max(values.items(), key=operator.itemgetter(1))
         return env.causal_action_to_env_action(candidate[0])
-    
-    def _predict_confounder(self, env, state, intent):
-        confounder = env.get_confounder()
-        if confounder != None:
-            query = confounder_query(
-                confounder=confounder, 
-                evidence=env.get_evidence(state),
-                model=env.get_causal_model(),
-                action= {env.get_action(): intent}
-                )
-            values = {
-                value : query.get_value(**{confounder:value}) 
-                for value in env.get_confounder_values()
-            }
-            # Select the action with the highest MAP
-            prediction = max(values.items(), key=operator.itemgetter(1))
-            return env.causal_confounder_to_env_confounder(prediction[0])
-        return 0

@@ -21,7 +21,7 @@ if __name__ == '__main__':
         'confounder_directly_influencing_state_outcome',
         'confounder_not_directly_influencing_outcome']
     '''
-    list_env = ['confounder_directly_influencing_state_outcome']
+    list_env = ['confounder_in_time']
     observe_confounder = True
     max_steps = 1000
 
@@ -57,11 +57,11 @@ if __name__ == '__main__':
             session.run(
                 episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
         )
-        '''
+        
         ####################################
         # A lot of Causal Q-Learning
         ####################################
-        for _ in range(30):
+        for _ in range(3):
             agent = rl.CausalQLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             )
 
             #print(agent._cache_inference)
-        '''
+        
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################

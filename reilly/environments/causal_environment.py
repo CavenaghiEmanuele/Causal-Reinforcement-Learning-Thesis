@@ -32,18 +32,6 @@ class CausalEnvironment(Environment, ABC):
     @abstractmethod
     def get_action_values(self):
         pass
-
-    @abstractmethod
-    def get_confounder(self):
-        pass
-
-    @abstractmethod
-    def get_confounder_values(self):
-        pass
-    
-    @abstractmethod
-    def causal_confounder_to_env_confounder(self, causal_confounder):
-        pass
     
     @abstractmethod
     def causal_action_to_env_action(self, causal_action):
