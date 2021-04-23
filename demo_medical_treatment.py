@@ -18,9 +18,7 @@ if __name__ == '__main__':
     list_env = [
         'base',
         'collider',
-        #'collider_in_time',
         'confounder_in_time',
-        'confounder_in_time2',
         'confounder_no_influence_cause_reward',
         'confounder_no_influence']
     '''
@@ -40,12 +38,8 @@ if __name__ == '__main__':
             env = rl.Base(observe_confounder=observe_confounder)
         elif env_type == 'collider':
             env = rl.Collider(observe_confounder=observe_confounder)
-        elif env_type == 'collider_in_time':
-            env = rl.ColliderInTime(observe_confounder=observe_confounder)
         elif env_type == 'confounder_in_time':
             env = rl.ConfounderInTime(observe_confounder=observe_confounder, build_causal_model=True)
-        elif env_type == 'confounder_in_time2':
-            env = rl.ConfounderInTime2(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_no_influence_cause_reward':
             env = rl.ConfounderNoInfluenceCauseReward(observe_confounder=observe_confounder)
         elif env_type == 'confounder_no_influence':
