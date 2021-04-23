@@ -12,7 +12,7 @@ if __name__ == '__main__':
     # collider
     # confounder_in_time
 
-    experiment_name = 'confounder_directly_influencing_outcome'
+    experiment_name = 'confounder_directly_influencing_state_outcome'
     observe = 'observe_confounder' # unobserve_confounder, observe_confounder
     #data = pd.read_csv('results/' + observe + '/' + experiment_name + '.csv')
 

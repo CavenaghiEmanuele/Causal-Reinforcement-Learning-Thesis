@@ -107,7 +107,11 @@ class ConfounderDirectlyInfluencingStateOutcome(ConfounderDirectlyInfluencingOut
 
     def reset(self, *args, **kwargs) -> int:
         # S, M, E
-        self._state = [1, random.randint(0,1), random.randint(0,1)]
+        self._state = [
+            1, 
+            np.random.binomial(size=1, n=1, p=0.7)[0], 
+            np.random.binomial(size=1, n=1, p=0.7)[0]
+            ]
         self._step = 0
         self._done = False
         if self._observe_confounder:
@@ -134,3 +138,101 @@ class ConfounderDirectlyInfluencingStateOutcome(ConfounderDirectlyInfluencingOut
             return self.encode(self._state), reward, done, {} # info = {}
         else:
             return self._state[0], reward, done, {} # info = {}
+
+
+   ###############################################
+    # Causal section
+    ###############################################
+    
+    def build_causal_model(self):
+        self._causal_model = BayesianModel(
+            [
+                ('S_p', 'S'),
+                ('X_p', 'S'),
+
+                ('S', 'X'),
+                ('S', 'Y'),
+
+                ('M', 'Y'),
+                ('M', 'S'),
+
+                ('E', 'Y'),
+                ('E', 'S'),
+
+                ('X', 'Y'),
+
+            ])
+
+        # S_p = Previous state
+        cpd_S_p = TabularCPD(
+            variable='S_p',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'S_p':['low', 'high']})
+        # X_p = Previous action
+        cpd_X_p = TabularCPD(
+            variable='X_p',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'X_p':['no drug', 'give drug']})
+        cpd_M = TabularCPD(
+            variable='M',
+            variable_card=2,
+            values=[[0.7], [0.3]],
+            state_names={'M':['positive', 'negative']})
+        cpd_E = TabularCPD(
+            variable='E',
+            variable_card=2,
+            values=[[0.7], [0.3]],
+            state_names={'E':['wealthy', 'poor']})
+        cpd_S = TabularCPD(
+            variable='S',
+            variable_card=2,
+            values=[
+                [0.3, 0.1, 0.1, 0.3, 0.7, 0.9, 0.9, 0.7, 0.5, 0.3, 0.3, 0.5, 0.2, 0.4, 0.4, 0.2],
+                [0.7, 0.9, 0.9, 0.7, 0.3, 0.1, 0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.8, 0.6, 0.6, 0.8]
+                ],
+            evidence=['X_p', 'S_p', 'M', 'E'],
+            evidence_card=[2, 2, 2, 2],
+            state_names={
+                'S_p':['low', 'high'],
+                'S':['low', 'high'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'X_p':['no drug', 'give drug']
+                })
+
+        cpd_X = TabularCPD(
+            variable='X',
+            variable_card=2,
+            values=[
+                [0.5, 0.5],
+                [0.5, 0.5]
+                ],
+            evidence=['S'],
+            evidence_card=[2],
+            state_names={
+                'X':['no drug', 'give drug'],
+                'S':['low', 'high']
+                })
+        cpd_Y = TabularCPD(
+            variable='Y',
+            variable_card=2,
+            values=[
+                [0.8, 0.1, 0.1, 0.8, 0.2, 0.7, 0.7, 0.2, 0.3, 0.8, 0.8, 0.3, 0.9, 0.2, 0.2, 0.9],
+                [0.2, 0.9, 0.9, 0.2, 0.8, 0.3, 0.3, 0.8, 0.7, 0.2, 0.2, 0.7, 0.1, 0.8, 0.8, 0.1]
+                ],
+            evidence=['S', 'M', 'E', 'X'],
+            evidence_card=[2, 2, 2, 2],
+            state_names={
+                'Y':['not healthy', 'healthy'],
+                'S':['low', 'high'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'X':['no drug', 'give drug']
+                })
+
+        self._causal_model.add_cpds(
+            cpd_S_p, cpd_X_p, cpd_M, cpd_E, cpd_S, cpd_X, cpd_Y)
+        
+        self._causal_model.check_model()

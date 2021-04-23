@@ -21,7 +21,7 @@ if __name__ == '__main__':
         'confounder_directly_influencing_state_outcome',
         'confounder_not_directly_influencing_outcome']
     '''
-    list_env = ['confounder_directly_influencing_outcome']
+    list_env = ['confounder_directly_influencing_state_outcome']
     observe_confounder = False
     max_steps = 1000
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         elif env_type == 'confounder_in_time':
             env = rl.ConfounderInTime(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_directly_influencing_state_outcome':
-            env = rl.ConfounderDirectlyInfluencingStateOutcome(observe_confounder=observe_confounder)
+            env = rl.ConfounderDirectlyInfluencingStateOutcome(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_not_directly_influencing_outcome':
             env = rl.ConfounderNotDirectlyInfluencingOutcome(observe_confounder=observe_confounder)
 
