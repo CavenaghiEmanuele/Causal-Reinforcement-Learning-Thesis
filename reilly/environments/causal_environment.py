@@ -33,6 +33,9 @@ class CausalEnvironment(Environment, ABC):
     def get_action_values(self):
         pass
     
+    def get_good_target_value(self):
+        pass
+
     @abstractmethod
     def causal_action_to_env_action(self, causal_action):
         pass

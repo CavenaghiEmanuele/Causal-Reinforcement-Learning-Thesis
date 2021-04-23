@@ -21,8 +21,8 @@ if __name__ == '__main__':
         'confounder_directly_influencing_state_outcome',
         'confounder_not_directly_influencing_outcome']
     '''
-    list_env = ['confounder_in_time']
-    observe_confounder = True
+    list_env = ['confounder_directly_influencing_outcome']
+    observe_confounder = False
     max_steps = 1000
 
     alpha = 0.005
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     for env_type in list_env:
 
         if env_type == 'confounder_directly_influencing_outcome':
-            env = rl.ConfounderDirectlyInfluencingOutcome(observe_confounder=observe_confounder)
+            env = rl.ConfounderDirectlyInfluencingOutcome(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'collider':
             env = rl.Collider(observe_confounder=observe_confounder)
         elif env_type == 'confounder_in_time':
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         ####################################
         # A lot of Causal Q-Learning
         ####################################
-        for _ in range(3):
+        for _ in range(10):
             agent = rl.CausalQLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################
-        for _ in range(3):
+        for _ in range(10):
             agent = rl.QLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)

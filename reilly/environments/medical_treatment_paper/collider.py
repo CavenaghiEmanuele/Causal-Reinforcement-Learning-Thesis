@@ -1,6 +1,7 @@
 import numpy as np
 
 from typing import Dict, List
+import random
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
@@ -91,6 +92,16 @@ class Collider(ConfounderDirectlyInfluencingOutcome):
             self.build_causal_model()
 
         self.reset()
+
+    def reset(self, *args, **kwargs) -> int:
+        # S, M, E
+        self._state = [1, random.randint(0,1), random.randint(0,1)]
+        self._step = 0
+        self._done = False
+        if self._observe_confounder:
+            return self.encode(self._state)
+        else:
+            return self._state[0]
 
     def _run_step(self, action):
         # Reward computation

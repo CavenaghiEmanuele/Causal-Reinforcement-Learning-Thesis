@@ -1,6 +1,4 @@
 import numpy as np
-import networkx as nx
-import matplotlib as plt
 import random
 
 from typing import Dict, List
@@ -249,15 +247,9 @@ class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
         
         self._causal_model.check_model()
 
-    def get_causal_model(self):
-        return self._causal_model
-
     def get_target(self):
         return 'Yt+1'
     
-    def get_good_target_value(self):
-        return 'healthy'
-
     def get_evidence(self, state):
         return {
             'St+1': self._state[0],
@@ -267,19 +259,3 @@ class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
 
     def get_action(self):
         return 'Xt+1'
-
-    def get_action_values(self):
-        return ['no drug', 'give drug']
-
-    def plot_causal_model(self):
-        nx.draw(self._causal_model, with_labels=True)
-        plt.show()
-
-    def causal_action_to_env_action(self, causal_action):
-        if causal_action == 'no drug':
-            return 0
-        elif causal_action == 'give drug':
-            return 1
-    
-    def get_agent_intent(self):
-        return 0

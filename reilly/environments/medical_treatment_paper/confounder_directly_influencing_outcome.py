@@ -1,6 +1,8 @@
 import networkx as nx
 import random
 import numpy as np
+import networkx as nx
+import matplotlib as plt
 
 from typing import Dict, List, Tuple
 
@@ -110,7 +112,11 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
 
     def reset(self, *args, **kwargs) -> int:
         # S, M, E
-        self._state = [1, random.randint(0,1), random.randint(0,1)]
+        self._state = [
+            1, 
+            np.random.binomial(size=1, n=1, p=0.8)[0], 
+            np.random.binomial(size=1, n=1, p=0.9)[0]
+            ]
         self._step = 0
         self._done = False
         if self._observe_confounder:
@@ -155,34 +161,103 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
     ###############################################
     
     def build_causal_model(self):
-        pass
+        self._causal_model = BayesianModel(
+            [
+                ('S', 'X'),
+                ('S', 'Y'),
+
+                ('M', 'X'),
+                ('M', 'Y'),
+
+                ('E', 'X'),
+                ('E', 'Y'),
+
+                ('X', 'Y'),
+            ])
+
+        cpd_M = TabularCPD(
+            variable='M',
+            variable_card=2,
+            values=[[0.8], [0.2]],
+            state_names={'M':['positive', 'negative']})
+        cpd_E = TabularCPD(
+            variable='E',
+            variable_card=2,
+            values=[[0.9], [0.1]],
+            state_names={'E':['wealthy', 'poor']})
+        cpd_S = TabularCPD(
+            variable='S',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'S':['low', 'high']})
+        cpd_X = TabularCPD(
+            variable='X',
+            variable_card=2,
+            values=[
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                ],
+            evidence=['M', 'E', 'S'],
+            evidence_card=[2,2,2],
+            state_names={
+                'X':['no drug', 'give drug'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'S':['low', 'high']
+                })
+        cpd_Y = TabularCPD(
+            variable='Y',
+            variable_card=2,
+            values=[
+                [0.8, 0.1, 0.1, 0.8, 0.2, 0.7, 0.7, 0.2, 0.3, 0.8, 0.8, 0.3, 0.9, 0.2, 0.2, 0.9],
+                [0.2, 0.9, 0.9, 0.2, 0.8, 0.3, 0.3, 0.8, 0.7, 0.2, 0.2, 0.7, 0.1, 0.8, 0.8, 0.1]
+                ],
+            evidence=['S', 'M', 'E', 'X'],
+            evidence_card=[2, 2, 2, 2],
+            state_names={
+                'Y':['not healthy', 'healthy'],
+                'S':['low', 'high'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'X':['no drug', 'give drug']
+                })
+
+        self._causal_model.add_cpds(
+            cpd_M, cpd_E, cpd_S, cpd_X, cpd_Y)
+        
+        self._causal_model.check_model()
 
     def get_causal_model(self):
-        pass
+        return self._causal_model
 
     def get_target(self):
-        pass
+        return 'Y'
+
+    def get_good_target_value(self):
+        return 'healthy'
     
     def get_evidence(self, state):
-        pass
+        if self._observe_confounder:
+            return {
+                'S': self._state[0],
+                'M': self._state[1],
+                'E': self._state[2],
+            }
+        else:
+            return {'S': self._state[0]}
 
     def get_action(self):
-        pass
+        return 'X'
 
     def get_action_values(self):
-        pass
+        return ['no drug', 'give drug']
 
-    def get_confounder(self):
-        pass
-
-    def get_confounder_values(self):
-        pass
-    
-    def causal_confounder_to_env_confounder(self, causal_confounder):
-        pass
-    
     def plot_causal_model(self):
-        pass
+        nx.draw(self._causal_model, with_labels=True)
+        plt.show()
 
     def causal_action_to_env_action(self, causal_action):
-        pass
+        if causal_action == 'no drug':
+            return 0
+        elif causal_action == 'give drug':
+            return 1
