@@ -5,7 +5,7 @@ from typing import Dict, List
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 
-from .base import Base
+from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
 
 '''
 States:
@@ -27,7 +27,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class Collider(Base):
+class Collider(ConfounderDirectlyInfluencingOutcome):
 
     _done: bool
     _state: List[int]

@@ -1,6 +1,3 @@
-from networkx.readwrite.gml import escape
-from reilly.environments.medical_treatment_paper import confounder_in_time2
-from networkx.generators.triads import TRIAD_EDGES
 import numpy as np
 import operator
 

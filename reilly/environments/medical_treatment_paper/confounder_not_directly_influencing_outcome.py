@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 
-from .base import Base
+from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
 
 '''
 States:
@@ -28,7 +28,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ConfounderNoInfluenceCauseReward(Base):
+class ConfounderNotDirectlyInfluencingOutcome(ConfounderDirectlyInfluencingOutcome):
 
     _done: bool
     _state: List[int]
@@ -37,8 +37,6 @@ class ConfounderNoInfluenceCauseReward(Base):
     _observe_confounder: bool
     _reward_probs: Dict
     _next_state_probs: Dict
-    _next_M_probs: Dict
-    _next_E_probs: Dict
 
     def __init__(
         self, 
@@ -54,25 +52,12 @@ class ConfounderNoInfluenceCauseReward(Base):
         self._max_step = max_steps
 
         if reward_probs == None:
-            # P(R=1) - format: S, M, E, X
+            # P(R=1) - format: S, X
             self._reward_probs = {
-                '[0, 0, 0, 0]': 0.2,
-                '[0, 0, 0, 1]': 0.9,
-                '[0, 0, 1, 0]': 0.9,
-                '[0, 0, 1, 1]': 0.2,
-                '[0, 1, 0, 0]': 0.8,
-                '[0, 1, 0, 1]': 0.3,
-                '[0, 1, 1, 0]': 0.3,
-                '[0, 1, 1, 1]': 0.8,
-
-                '[1, 0, 0, 0]': 0.7,
-                '[1, 0, 0, 1]': 0.2,
-                '[1, 0, 1, 0]': 0.2,
-                '[1, 0, 1, 1]': 0.7,
-                '[1, 1, 0, 0]': 0.1,
-                '[1, 1, 0, 1]': 0.8,
-                '[1, 1, 1, 0]': 0.8,
-                '[1, 1, 1, 1]': 0.1
+                '[0, 0]': 0.2,
+                '[0, 1]': 0.8,
+                '[1, 0]': 0.8,
+                '[1, 1]': 0.2,
                 }
         else:
             self._reward_probs = reward_probs
@@ -109,7 +94,7 @@ class ConfounderNoInfluenceCauseReward(Base):
     def _run_step(self, action):
 
         # Reward computation
-        reward = np.random.binomial(size=1, n=1, p= self._reward_probs[str(self._state + [action])])[0] # P(R=1)
+        reward = np.random.binomial(size=1, n=1, p= self._reward_probs[str([self._state[0], action])])[0] # P(R=1)
 
         # Next state compute 
         # S = self._state[0]

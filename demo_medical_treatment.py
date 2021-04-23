@@ -1,4 +1,3 @@
-from reilly.agents.tabular_agents.temporal_difference import q_learning
 import reilly as rl
 
 import numpy as np
@@ -16,13 +15,13 @@ if __name__ == '__main__':
 
     '''
     list_env = [
-        'base',
+        'confounder_directly_influencing_outcome',
         'collider',
         'confounder_in_time',
-        'confounder_no_influence_cause_reward',
-        'confounder_no_influence']
+        'confounder_directly_influencing_state_outcome',
+        'confounder_not_directly_influencing_outcome']
     '''
-    list_env = ['confounder_in_time']
+    list_env = ['confounder_directly_influencing_state_outcome']
     observe_confounder = True
     max_steps = 1000
 
@@ -34,16 +33,16 @@ if __name__ == '__main__':
 
     for env_type in list_env:
 
-        if env_type == 'base':
-            env = rl.Base(observe_confounder=observe_confounder)
+        if env_type == 'confounder_directly_influencing_outcome':
+            env = rl.ConfounderDirectlyInfluencingOutcome(observe_confounder=observe_confounder)
         elif env_type == 'collider':
             env = rl.Collider(observe_confounder=observe_confounder)
         elif env_type == 'confounder_in_time':
             env = rl.ConfounderInTime(observe_confounder=observe_confounder, build_causal_model=True)
-        elif env_type == 'confounder_no_influence_cause_reward':
-            env = rl.ConfounderNoInfluenceCauseReward(observe_confounder=observe_confounder)
-        elif env_type == 'confounder_no_influence':
-            env = rl.ConfounderNoInfluence(observe_confounder=observe_confounder)
+        elif env_type == 'confounder_directly_influencing_state_outcome':
+            env = rl.ConfounderDirectlyInfluencingStateOutcome(observe_confounder=observe_confounder)
+        elif env_type == 'confounder_not_directly_influencing_outcome':
+            env = rl.ConfounderNotDirectlyInfluencingOutcome(observe_confounder=observe_confounder)
 
         results = []
         
@@ -58,7 +57,7 @@ if __name__ == '__main__':
             session.run(
                 episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
         )
-        
+        '''
         ####################################
         # A lot of Causal Q-Learning
         ####################################
@@ -75,11 +74,11 @@ if __name__ == '__main__':
             )
 
             #print(agent._cache_inference)
-
+        '''
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################
-        for _ in range(30):
+        for _ in range(3):
             agent = rl.QLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
