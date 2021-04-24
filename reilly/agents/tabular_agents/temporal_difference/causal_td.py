@@ -1,5 +1,6 @@
 import numpy as np
 import operator
+import random
 
 from abc import ABC
 
@@ -10,7 +11,31 @@ from ....utils.causal_inference import causal_query
 class CausalTD(TemporalDifference, ABC, object):
 
     _cache_inference = {}
-    _confounder_cache = {}
+
+    def __init__(
+        self,
+        states: int,
+        actions: int,
+        alpha: float,
+        epsilon: float,
+        gamma: float,
+        epsilon_decay: float = 1,
+        min_epsilon: float = 0.05,
+        causal_threshold: float = 0.0,
+        *args,
+        **kwargs
+    ):
+
+        self._causal_threshold = causal_threshold
+        super().__init__(
+            states=states,
+            actions=actions,
+            alpha=alpha,
+            epsilon=epsilon,
+            gamma=gamma,
+            epsilon_decay=epsilon_decay,
+            min_epsilon=min_epsilon
+            )
 
     def reset(self, init_state:int, *args, **kwargs) -> None:
         self._S = init_state
@@ -23,8 +48,8 @@ class CausalTD(TemporalDifference, ABC, object):
         except:
             a = self._inferenced_selection(env=env, state=state)
             self._cache_inference.update({(state) : a})
-
-        if a == None:
+        
+        if a == None or random.uniform(0, 1) < self._epsilon:
             return np.random.choice(range(self._actions), p=policy_state)
         return a
 
@@ -46,4 +71,7 @@ class CausalTD(TemporalDifference, ABC, object):
 
         # Select the action with the highest MAP
         candidate = max(values.items(), key=operator.itemgetter(1))
-        return env.causal_action_to_env_action(candidate[0])
+        if candidate[1] > self._causal_threshold:
+            return env.causal_action_to_env_action(candidate[0])
+        else:
+            return None
