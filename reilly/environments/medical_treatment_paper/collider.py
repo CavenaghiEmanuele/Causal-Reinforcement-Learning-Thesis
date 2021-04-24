@@ -1,12 +1,9 @@
+import random
+from typing import Dict
+
 import numpy as np
 
-from typing import Dict, List
-import random
-
-from pgmpy.models import BayesianModel
-from pgmpy.factors.discrete import TabularCPD
-
-from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
+from .abstract_medical_treatment import AbstractMedicalTreatment
 
 '''
 States:
@@ -28,41 +25,21 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class Collider(ConfounderDirectlyInfluencingOutcome):
+class Collider(AbstractMedicalTreatment):
 
-    _done: bool
-    _state: List[int]
-    _step: int
-    _max_step: int
-    _observe_confounder: bool
-    _reward_probs: Dict
     _next_state_probs: Dict
     _next_M_probs: Dict
     _next_E_probs: Dict
 
-    def __init__(
-        self, 
-        build_causal_model:bool=False, 
-        observe_confounder:bool=True, 
-        max_steps:int=100, 
-        reward_probs:Dict=None
-        ):
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True, max_steps:int=100):
 
-        self._done = False
-        self._observe_confounder = observe_confounder
-        self._state = [1, 0, 0]
-        self._max_step = max_steps
-
-        if reward_probs == None:
-            # P(R=1) - format: S, X
-            self._reward_probs = {
-                '[0, 0]': 0.2,
-                '[0, 1]': 0.9,
-                '[1, 0]': 0.9,
-                '[1, 1]': 0.2,
+        # P(R=1) - format: S, X
+        reward_probs = {
+            '[0, 0]': 0.2,
+            '[0, 1]': 0.9,
+            '[1, 0]': 0.9,
+            '[1, 1]': 0.2,
             }
-        else:
-            self._reward_probs = reward_probs
 
         # P(S=1) - format: X, S
         self._next_state_probs = {
@@ -88,10 +65,11 @@ class Collider(ConfounderDirectlyInfluencingOutcome):
             '[1, 1]': 0.7,
         }
 
-        if build_causal_model:
-            self.build_causal_model()
-
-        self.reset()
+        super().__init__(
+            build_causal_model=build_causal_model, 
+            observe_confounder=observe_confounder, 
+            max_steps=max_steps, 
+            reward_probs=reward_probs)
 
     def reset(self, *args, **kwargs) -> int:
         # S, M, E

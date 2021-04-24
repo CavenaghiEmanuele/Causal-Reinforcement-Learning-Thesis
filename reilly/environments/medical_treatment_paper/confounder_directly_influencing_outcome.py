@@ -1,16 +1,11 @@
-import networkx as nx
-import random
+from typing import Dict
+
 import numpy as np
-import networkx as nx
-import matplotlib as plt
-
-from typing import Dict, List, Tuple
-
-from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
+from pgmpy.models import BayesianModel
 
-from ..causal_environment import CausalEnvironment
-
+from .abstract_causal_medical_treatment import AbstractCausalMedicalTreatment
+from .abstract_medical_treatment import AbstractMedicalTreatment
 
 '''
 States:
@@ -32,52 +27,31 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
+class ConfounderDirectlyInfluencingOutcome(AbstractMedicalTreatment, AbstractCausalMedicalTreatment):
 
-    _done: bool
-    _state: List[int]
-    _step: int
-    _max_step: int
-    _observe_confounder: bool
-    _reward_probs: Dict
     _next_state_probs: Dict
 
-    def __init__(
-        self, 
-        build_causal_model:bool=False, 
-        observe_confounder:bool=True, 
-        max_steps:int=100, 
-        reward_probs:Dict=None
-        ):
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True, max_steps:int=100):
 
-        self._done = False
-        self._observe_confounder = observe_confounder
-        self._state = [1, 0, 0]
-        self._max_step = max_steps
+        reward_probs = {
+            '[0, 0, 0, 0]': 0.2,
+            '[0, 0, 0, 1]': 0.9,
+            '[0, 0, 1, 0]': 0.9,
+            '[0, 0, 1, 1]': 0.2,
+            '[0, 1, 0, 0]': 0.8,
+            '[0, 1, 0, 1]': 0.3,
+            '[0, 1, 1, 0]': 0.3,
+            '[0, 1, 1, 1]': 0.8,
 
-        if reward_probs == None:
-            # P(R=1) - format: S, M, E, X
-            self._reward_probs = {
-                '[0, 0, 0, 0]': 0.2,
-                '[0, 0, 0, 1]': 0.9,
-                '[0, 0, 1, 0]': 0.9,
-                '[0, 0, 1, 1]': 0.2,
-                '[0, 1, 0, 0]': 0.8,
-                '[0, 1, 0, 1]': 0.3,
-                '[0, 1, 1, 0]': 0.3,
-                '[0, 1, 1, 1]': 0.8,
-
-                '[1, 0, 0, 0]': 0.7,
-                '[1, 0, 0, 1]': 0.2,
-                '[1, 0, 1, 0]': 0.2,
-                '[1, 0, 1, 1]': 0.7,
-                '[1, 1, 0, 0]': 0.1,
-                '[1, 1, 0, 1]': 0.8,
-                '[1, 1, 1, 0]': 0.8,
-                '[1, 1, 1, 1]': 0.1,
+            '[1, 0, 0, 0]': 0.7,
+            '[1, 0, 0, 1]': 0.2,
+            '[1, 0, 1, 0]': 0.2,
+            '[1, 0, 1, 1]': 0.7,
+            '[1, 1, 0, 0]': 0.1,
+            '[1, 1, 0, 1]': 0.8,
+            '[1, 1, 1, 0]': 0.8,
+            '[1, 1, 1, 1]': 0.1,
             }
-        else:
-            self._reward_probs = reward_probs
 
         # P(S=1) - format: X, S
         self._next_state_probs = {
@@ -90,24 +64,11 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
         if build_causal_model:
             self.build_causal_model()
 
-        self.reset()
-
-    @property
-    def actions(self) -> int:
-        return 2
-
-    @property
-    def states(self) -> int:
-        if self._observe_confounder:
-            return 8
-        else:
-            return 2
-    
-    def run_step(self, action, *args, **kwargs):
-        info = {}
-        next_state, reward, done, _ = self._run_step(action)
-
-        return next_state, reward, done, info
+        super().__init__(
+            build_causal_model=build_causal_model, 
+            observe_confounder=observe_confounder, 
+            max_steps=max_steps, 
+            reward_probs=reward_probs)
 
     def reset(self, *args, **kwargs) -> int:
         # S, M, E
@@ -123,12 +84,6 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
         else:
             return self._state[0]
     
-    def decode(self, state:int) -> Tuple:
-        pass
-
-    def encode(self, state:Tuple) -> int:
-        return state[0] + state[1]*2 + state[2]*4
-
     def _run_step(self, action):
 
         # Reward computation
@@ -148,12 +103,6 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
         else:
             return self._state[0], reward, done, {} # info = {}
     
-    def render(self) -> None:
-        pass
-
-    @property
-    def probability_distribution(self):
-        pass
 
     ###############################################
     # Causal section
@@ -226,15 +175,6 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
         
         self._causal_model.check_model()
 
-    def get_causal_model(self):
-        return self._causal_model
-
-    def get_target(self):
-        return 'Y'
-
-    def get_good_target_value(self):
-        return 'healthy'
-    
     def get_evidence(self, state):
         if self._observe_confounder:
             return {
@@ -244,19 +184,3 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
             }
         else:
             return {'S': self._state[0]}
-
-    def get_action(self):
-        return 'X'
-
-    def get_action_values(self):
-        return ['no drug', 'give drug']
-
-    def plot_causal_model(self):
-        nx.draw(self._causal_model, with_labels=True)
-        plt.show()
-
-    def causal_action_to_env_action(self, causal_action):
-        if causal_action == 'no drug':
-            return 0
-        elif causal_action == 'give drug':
-            return 1

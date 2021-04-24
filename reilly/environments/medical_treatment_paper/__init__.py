@@ -1,3 +1,5 @@
+from .abstract_medical_treatment import AbstractMedicalTreatment
+from .abstract_causal_medical_treatment import AbstractCausalMedicalTreatment
 from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
 from .collider_in_time import ColliderInTime
 from .confounder_in_time import ConfounderInTime

@@ -1,8 +1,6 @@
-import reilly as rl
-
-import numpy as np
 import pandas as pd
 
+import reilly as rl
 
 if __name__ == '__main__':
 
@@ -21,7 +19,7 @@ if __name__ == '__main__':
         'confounder_directly_influencing_state_outcome',
         'confounder_not_directly_influencing_outcome']
     '''
-    list_env = ['confounder_directly_influencing_state_outcome']
+    list_env = ['confounder_directly_influencing_outcome']
     observe_confounder = False
     max_steps = 1000
 
@@ -61,7 +59,7 @@ if __name__ == '__main__':
         ####################################
         # A lot of Causal Q-Learning
         ####################################
-        for _ in range(10):
+        for _ in range(1):
             agent = rl.CausalQLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -78,7 +76,7 @@ if __name__ == '__main__':
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################
-        for _ in range(10):
+        for _ in range(1):
             agent = rl.QLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)

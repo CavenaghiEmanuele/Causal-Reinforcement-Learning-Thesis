@@ -1,11 +1,8 @@
+from typing import Dict
+
 import numpy as np
 
-from typing import Dict, List
-
-from pgmpy.models import BayesianModel
-from pgmpy.factors.discrete import TabularCPD
-
-from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
+from .abstract_medical_treatment import AbstractMedicalTreatment
 
 '''
 States:
@@ -27,54 +24,34 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ColliderInTime(ConfounderDirectlyInfluencingOutcome):
+class ColliderInTime(AbstractMedicalTreatment):
 
-    _done: bool
-    _state: List[int]
-    _step: int
-    _max_step: int
-    _observe_confounder: bool
-    _reward_probs: Dict
     _next_state_probs: Dict
     _next_M_probs: Dict
     _next_E_probs: Dict
 
-    def __init__(
-        self, 
-        build_causal_model:bool=False, 
-        observe_confounder:bool=True, 
-        max_steps:int=100, 
-        reward_probs:Dict=None
-        ):
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True, max_steps:int=100):
 
-        self._done = False
-        self._observe_confounder = observe_confounder
-        self._state = [1, 0, 0]
-        self._max_step = max_steps
+        # P(R=1) - format: S, M, E, X
+        reward_probs = {
+            '[0, 0, 0, 0]': 0.2,
+            '[0, 0, 0, 1]': 0.9,
+            '[0, 0, 1, 0]': 0.9,
+            '[0, 0, 1, 1]': 0.2,
+            '[0, 1, 0, 0]': 0.8,
+            '[0, 1, 0, 1]': 0.3,
+            '[0, 1, 1, 0]': 0.3,
+            '[0, 1, 1, 1]': 0.8,
 
-        if reward_probs == None:
-            # P(R=1) - format: S, M, E, X
-            self._reward_probs = {
-                '[0, 0, 0, 0]': 0.2,
-                '[0, 0, 0, 1]': 0.9,
-                '[0, 0, 1, 0]': 0.9,
-                '[0, 0, 1, 1]': 0.2,
-                '[0, 1, 0, 0]': 0.8,
-                '[0, 1, 0, 1]': 0.3,
-                '[0, 1, 1, 0]': 0.3,
-                '[0, 1, 1, 1]': 0.8,
-
-                '[1, 0, 0, 0]': 0.7,
-                '[1, 0, 0, 1]': 0.2,
-                '[1, 0, 1, 0]': 0.2,
-                '[1, 0, 1, 1]': 0.7,
-                '[1, 1, 0, 0]': 0.1,
-                '[1, 1, 0, 1]': 0.8,
-                '[1, 1, 1, 0]': 0.8,
-                '[1, 1, 1, 1]': 0.1,
+            '[1, 0, 0, 0]': 0.7,
+            '[1, 0, 0, 1]': 0.2,
+            '[1, 0, 1, 0]': 0.2,
+            '[1, 0, 1, 1]': 0.7,
+            '[1, 1, 0, 0]': 0.1,
+            '[1, 1, 0, 1]': 0.8,
+            '[1, 1, 1, 0]': 0.8,
+            '[1, 1, 1, 1]': 0.1
             }
-        else:
-            self._reward_probs = reward_probs
 
         # P(S=1) - format: X, S
         self._next_state_probs = {
@@ -100,10 +77,25 @@ class ColliderInTime(ConfounderDirectlyInfluencingOutcome):
             '[1, 1]': 0.7,
         }
 
-        if build_causal_model:
-            self.build_causal_model()
+        super().__init__(
+            build_causal_model=build_causal_model, 
+            observe_confounder=observe_confounder, 
+            max_steps=max_steps, 
+            reward_probs=reward_probs)
 
-        self.reset()
+    def reset(self, *args, **kwargs) -> int:
+        # S, M, E
+        self._state = [
+            1, 
+            np.random.binomial(size=1, n=1, p=0.8)[0], 
+            np.random.binomial(size=1, n=1, p=0.9)[0]
+            ]
+        self._step = 0
+        self._done = False
+        if self._observe_confounder:
+            return self.encode(self._state)
+        else:
+            return self._state[0]
 
     def _run_step(self, action):
         # Reward computation

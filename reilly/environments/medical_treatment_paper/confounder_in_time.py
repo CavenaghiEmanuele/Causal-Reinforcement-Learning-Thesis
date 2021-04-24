@@ -1,12 +1,12 @@
-import numpy as np
 import random
+from typing import Dict
 
-from typing import Dict, List
-
-from pgmpy.models import BayesianModel
+import numpy as np
 from pgmpy.factors.discrete import TabularCPD
+from pgmpy.models import BayesianModel
 
-from .confounder_directly_influencing_outcome import ConfounderDirectlyInfluencingOutcome
+from .abstract_causal_medical_treatment import AbstractCausalMedicalTreatment
+from .abstract_medical_treatment import AbstractMedicalTreatment
 
 '''
 States:
@@ -28,53 +28,33 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
+class ConfounderInTime(AbstractMedicalTreatment, AbstractCausalMedicalTreatment):
 
-    _done: bool
-    _state: List[int]
-    _step: int
-    _max_step: int
-    _observe_confounder: bool
-    _reward_probs: Dict
     _next_state_probs: Dict
     _next_M_probs: Dict
     _next_E_probs: Dict
 
-    def __init__(
-        self, 
-        build_causal_model:bool=False, 
-        observe_confounder:bool=True, 
-        max_steps:int=100, 
-        reward_probs:Dict=None
-        ):
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True, max_steps:int=100):
 
-        self._done = False
-        self._observe_confounder = observe_confounder
-        self._state = [1, 0, 0]
-        self._max_step = max_steps
+        reward_probs = {
+            '[0, 0, 0, 0]': 0.2,
+            '[0, 0, 0, 1]': 0.9,
+            '[0, 0, 1, 0]': 0.9,
+            '[0, 0, 1, 1]': 0.2,
+            '[0, 1, 0, 0]': 0.8,
+            '[0, 1, 0, 1]': 0.3,
+            '[0, 1, 1, 0]': 0.3,
+            '[0, 1, 1, 1]': 0.8,
 
-        if reward_probs == None:
-            # P(R=1) - format: S, M, E, X
-            self._reward_probs = {
-                '[0, 0, 0, 0]': 0.2,
-                '[0, 0, 0, 1]': 0.9,
-                '[0, 0, 1, 0]': 0.9,
-                '[0, 0, 1, 1]': 0.2,
-                '[0, 1, 0, 0]': 0.8,
-                '[0, 1, 0, 1]': 0.3,
-                '[0, 1, 1, 0]': 0.3,
-                '[0, 1, 1, 1]': 0.8,
-
-                '[1, 0, 0, 0]': 0.7,
-                '[1, 0, 0, 1]': 0.2,
-                '[1, 0, 1, 0]': 0.2,
-                '[1, 0, 1, 1]': 0.7,
-                '[1, 1, 0, 0]': 0.1,
-                '[1, 1, 0, 1]': 0.8,
-                '[1, 1, 1, 0]': 0.8,
-                '[1, 1, 1, 1]': 0.1}
-        else:
-            self._reward_probs = reward_probs
+            '[1, 0, 0, 0]': 0.7,
+            '[1, 0, 0, 1]': 0.2,
+            '[1, 0, 1, 0]': 0.2,
+            '[1, 0, 1, 1]': 0.7,
+            '[1, 1, 0, 0]': 0.1,
+            '[1, 1, 0, 1]': 0.8,
+            '[1, 1, 1, 0]': 0.8,
+            '[1, 1, 1, 1]': 0.1,
+            }
 
         # P(S=1) - format: X, S
         self._next_state_probs = {
@@ -103,7 +83,11 @@ class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
         if build_causal_model:
             self.build_causal_model()
 
-        self.reset()
+        super().__init__(
+            build_causal_model=build_causal_model, 
+            observe_confounder=observe_confounder, 
+            max_steps=max_steps, 
+            reward_probs=reward_probs)
     
     def reset(self, *args, **kwargs) -> int:
         # S, M, E
@@ -128,7 +112,6 @@ class ConfounderInTime(ConfounderDirectlyInfluencingOutcome):
         # Next state compute 
         # S = self._state[0]
         self._state[0] = np.random.binomial(size=1, n=1, p= self._next_state_probs[str([action, self._state[0]])])[0] # P(S=1)
-
 
         # Done computation
         done = False
