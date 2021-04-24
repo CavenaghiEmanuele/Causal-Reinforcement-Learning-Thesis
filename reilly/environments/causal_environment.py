@@ -1,3 +1,6 @@
+import networkx as nx
+import pylab as plt
+
 from abc import ABC, abstractmethod
 
 from .environment import Environment
@@ -9,9 +12,9 @@ class CausalEnvironment(Environment, ABC):
     def build_causal_model(self):
         pass
 
-    @abstractmethod
     def plot_causal_model(self):
-        pass
+        nx.draw(self._causal_model, with_labels=True)
+        plt.show()
 
     @abstractmethod
     def get_causal_model(self):
@@ -33,6 +36,7 @@ class CausalEnvironment(Environment, ABC):
     def get_action_values(self):
         pass
     
+    @abstractmethod
     def get_good_target_value(self):
         pass
 
