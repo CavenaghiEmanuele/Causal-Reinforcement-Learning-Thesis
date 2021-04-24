@@ -106,9 +106,8 @@ class ConfounderDirectlyInfluencingOutcome(CausalEnvironment):
     def run_step(self, action, *args, **kwargs):
         info = {}
         next_state, reward, done, _ = self._run_step(action)
-        agent_reward = reward
 
-        return next_state, reward, agent_reward, done, info
+        return next_state, reward, done, info
 
     def reset(self, *args, **kwargs) -> int:
         # S, M, E

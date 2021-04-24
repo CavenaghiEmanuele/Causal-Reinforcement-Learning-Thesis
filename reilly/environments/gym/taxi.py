@@ -24,8 +24,6 @@ There are 6 discrete deterministic actions:
 class Taxi(GymEnvironment, CausalEnvironment):
 
     _done: bool
-    _subgoal: int
-    _passenger_on_taxi: bool
     _confounders: bool
     _thief: bool
     _intent: int # 0 = lead passenger, 1 = call police
@@ -33,8 +31,6 @@ class Taxi(GymEnvironment, CausalEnvironment):
     def __init__(self, build_causal_model:bool=False, confounders:bool=False):
         self._env = gym.make('Taxi-v3')
         self._done = False
-        self._subgoal = 0
-        self._passenger_on_taxi = False
 
         self._confounders = confounders
         self._thief = False
@@ -65,12 +61,11 @@ class Taxi(GymEnvironment, CausalEnvironment):
                 reward = -1000
                 info['wins'] = 0
 
-        agent_reward = reward
         if done and reward == 20:
             info['wins'] = 1
         self._done == done
 
-        return next_state, reward, agent_reward, done, info
+        return next_state, reward, done, info
 
     def reset(self, *args, **kwargs) -> int:
         if self._confounders: 
@@ -297,7 +292,7 @@ class Taxi(GymEnvironment, CausalEnvironment):
         r.update(pd[state[3]])
         return r
 
-    def get_actions(self):
+    def get_action(self):
         actions = ['P', 'D']
         if self._confounders:
             actions.append('callP')
