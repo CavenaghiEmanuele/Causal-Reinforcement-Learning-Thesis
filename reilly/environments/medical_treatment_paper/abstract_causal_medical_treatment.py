@@ -59,3 +59,6 @@ class AbstractCausalMedicalTreatment(CausalEnvironment, ABC):
             return 0
         elif causal_action == 'give drug':
             return 1
+
+    def get_agent_intent(self):
+        return 0

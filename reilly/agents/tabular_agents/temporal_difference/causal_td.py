@@ -43,11 +43,12 @@ class CausalTD(TemporalDifference, ABC, object):
 
     def _select_action(self, policy_state, state, env):
 
+        intent = env.get_agent_intent()
         try:
-            a = self._cache_inference[(state)]
+            a = self._cache_inference[(state, intent)]
         except:
             a = self._inferenced_selection(env=env, state=state)
-            self._cache_inference.update({(state) : a})
+            self._cache_inference.update({(state, intent) : a})
         
         if a == None or random.uniform(0, 1) < self._epsilon:
             return np.random.choice(range(self._actions), p=policy_state)

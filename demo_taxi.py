@@ -13,10 +13,10 @@ if __name__ == '__main__':
     test_offset = 100
     test_sample = 50
 
-    env_name = 'taxi_generic_model' # taxi, taxi_generic_model
+    env_name = 'taxi_confounder' # taxi, taxi_generic_model, taxi_confounder
     observe_confounders = True
 
-    alpha = 0.2
+    alpha = 0.1
     epsilon = 1
     epsilon_decay = 0.99
     gamma = 0.99
@@ -27,10 +27,12 @@ if __name__ == '__main__':
     if env_name == 'taxi':
         env = rl.Taxi(build_causal_model=True, confounders=observe_confounders)
     elif env_name == 'taxi_generic_model':
-        env = rl.TaxiGenericModel(build_causal_model=True, observe_confounders=observe_confounders)
+        env = rl.TaxiGenericModel(build_causal_model=True)
+    elif env_name == 'taxi_confounder':
+        env = rl.TaxiConfounder(build_causal_model=True, observe_confounder=observe_confounders)
 
     results = []
-    
+    '''
     ####################################
     # Vanilla Q-Learning
     ####################################
@@ -44,7 +46,7 @@ if __name__ == '__main__':
         session.run(
             episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
     )
-    '''
+    ''''''
     ####################################
     # Random agent
     ####################################

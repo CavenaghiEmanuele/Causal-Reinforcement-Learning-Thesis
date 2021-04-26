@@ -43,3 +43,7 @@ class CausalEnvironment(Environment, ABC):
     @abstractmethod
     def causal_action_to_env_action(self, causal_action):
         pass
+
+    @abstractmethod
+    def get_agent_intent(self):
+        pass

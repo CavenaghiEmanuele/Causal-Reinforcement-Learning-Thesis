@@ -3,36 +3,60 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
 import gym
+import random
 
 from ..causal_environment import CausalEnvironment
 from .abstract_gym import GymEnvironment
 
 '''
 Actions:
-There are 6 discrete deterministic actions:
+There are 7 discrete deterministic actions:
 - 0: move south
 - 1: move north
 - 2: move east
 - 3: move west
 - 4: pickup passenger
 - 5: drop off passenger
+- 6: call police
 '''
-class TaxiGenericModel(GymEnvironment, CausalEnvironment):
+class TaxiConfounder(GymEnvironment, CausalEnvironment):
 
-    def __init__(self, build_causal_model:bool=False):
+    _observe_confounder:bool
+    _thief:bool
+
+    def __init__(self, build_causal_model:bool=False, observe_confounder:bool=True):
         self._env = gym.make('Taxi-v3')
+        self._observe_confounder = observe_confounder
         if build_causal_model:
             self.build_causal_model()
         self.reset()
 
+    @property
+    def actions(self) -> int:
+        return self._env.action_space.n + 1
+
     def run_step(self, action, *args, **kwargs):
+
         info = {'wins': 0}
-        next_state, reward, done, _ = self._env.step(action)
+
+        if action == 6: # call police
+            next_state, _, _, _ = self._env.step(4) # Pickup only to take the same state, we don't save reward and done
+            reward, done = -10, False
+            if self._thief:
+                reward, done = 20, True
+        else: 
+            next_state, reward, done, _ = self._env.step(action)
+            if self._thief and done and reward == 20:
+                reward = -100
+                info['wins'] = 0
+
         if done and reward == 20:
             info['wins'] = 1
+
         return next_state, reward, done, info
 
     def reset(self, *args, **kwargs) -> int:
+        self._thief = bool(random.getrandbits(1))
         return self._env.reset()
 
     def decode(self, state):
@@ -52,6 +76,7 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
         # onPP = the cab is on the Passenger Position
         # onDP = the cab is on the Destination Position
         # inC = passenger is in the cab
+        # thief = Passenger is a thief
 
         self._causal_model = BayesianModel(
             [
@@ -63,10 +88,12 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
                 ('inC', 'X'),
                 ('onPP', 'X'),
                 ('onDP', 'X'),
+                ('thief', 'X'),
 
+                ('inC', 'Y'),
                 ('onPP', 'Y'),
                 ('onDP', 'Y'),
-                ('inC', 'Y'),
+                ('thief', 'Y'),
                 ('X', 'Y'),
             ]
         )
@@ -132,42 +159,51 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
             values=[[0.5], [0.5]],
             state_names={'inC': ['False', 'True']}
             )       
+        cpd_thief = TabularCPD(
+            variable='thief',
+            variable_card=2,
+            values=[[0.5],[0.5]],
+            state_names={'thief': ['no thief','thief']}
+            )
         cpd_X = TabularCPD(
             variable='X', 
-            variable_card=2, 
+            variable_card=3, 
             values=[
-                [0.5, 0.5, 0.5, 0, 1, 0.5, 1, 0], 
-                [0.5, 0.5, 0.5, 1, 0, 0.5, 0, 1]
+                [0.5, 0.5, 0.5, 0.0, 1.0, 0.5, 1.0, 0.0,    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
+                [0.5, 0.5, 0.5, 1.0, 0.0, 0.5, 0.0, 1.0,    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
             ],
-            evidence=['onPP', 'onDP', 'inC'],
-            evidence_card=[2, 2, 2],
+            evidence=['thief', 'onPP', 'onDP', 'inC'],
+            evidence_card=[2, 2, 2, 2],
             state_names={
-                'X': ['Pickup', 'Dropoff'],
+                'X': ['Pickup', 'Dropoff', 'CallPolice'],
                 'onPP': ['False', 'True'],
                 'onDP': ['False', 'True'],
-                'inC': ['False', 'True']
+                'inC': ['False', 'True'],
+                'thief': ['no thief','thief']
                 }
             )
         cpd_Y = TabularCPD(
             variable='Y',
             variable_card=2,
             values=[
-                [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0], 
-                [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1]
+                [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
             ],
-            evidence=['X', 'inC', 'onDP', 'onPP'],
-            evidence_card=[2, 2, 2, 2],
+            evidence=['thief', 'X', 'inC', 'onDP', 'onPP'],
+            evidence_card=[2, 3, 2, 2, 2],
             state_names={
                 'Y': ['False', 'True'],
-                'X': ['Pickup', 'Dropoff'],
+                'X': ['Pickup', 'Dropoff', 'CallPolice'],
                 'inC': ['False', 'True'],
                 'onDP': ['False', 'True'],
-                'onPP': ['False', 'True']
+                'onPP': ['False', 'True'],
+                'thief': ['no thief','thief']
                 }
                 )
 
         # Associating the CPDs with the network
-        self._causal_model.add_cpds(cpd_PP, cpd_DP, cpd_CP, cpd_onPP, cpd_onDP, cpd_inC, cpd_X, cpd_Y)
+        self._causal_model.add_cpds(cpd_PP, cpd_DP, cpd_CP, cpd_onPP, cpd_onDP, cpd_inC, cpd_thief, cpd_X, cpd_Y)
 
         # check_model checks for the network structure and CPDs and verifies that the CPDs are correctly 
         # defined and sum to 1.
@@ -186,6 +222,7 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
         # onPP = the cab is on the Passenger Position
         # onDP = the cab is on the Destination Position
         # inC = passenger is in the cab
+        # thief = Passenger is a thief
 
         state = self.decode(state)
         evidence = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
@@ -206,13 +243,21 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
             3 : {'DP' : 'destination ' + str(23)}
         }  
         evidence.update(pd[state[3]])
+
+        if self._observe_confounder:
+            t = {
+                0 : {'thief' : 'no thief'},
+                1 : {'thief' : 'thief'}
+            }
+            evidence.update(t[self._thief])
+
         return evidence
 
     def get_action(self):
         return 'X'
 
     def get_action_values(self):
-        return ['Pickup', 'Dropoff']
+        return ['Pickup', 'Dropoff', 'CallPolice']
 
     def get_good_target_value(self):
         return 'True'
@@ -222,6 +267,8 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
             return 4
         elif causal_action == 'Dropoff':
             return 5
-
+        elif causal_action == 'CallPolice':
+            return 6
+        
     def get_agent_intent(self):
-        return 0
+        return int(self._thief)
