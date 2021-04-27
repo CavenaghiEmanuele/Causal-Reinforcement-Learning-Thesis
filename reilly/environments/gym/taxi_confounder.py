@@ -44,14 +44,15 @@ class TaxiConfounder(GymEnvironment, CausalEnvironment):
             reward, done = -10, False
             if self._thief:
                 reward, done = 20, True
+                info['wins'] = 1
         else: 
             next_state, reward, done, _ = self._env.step(action)
             if self._thief and done and reward == 20:
-                reward = -100
+                reward = -1000
                 info['wins'] = 0
 
-        if done and reward == 20:
-            info['wins'] = 1
+            if done and reward == 20:
+                info['wins'] = 1
 
         return next_state, reward, done, info
 
@@ -187,8 +188,8 @@ class TaxiConfounder(GymEnvironment, CausalEnvironment):
             variable='Y',
             variable_card=2,
             values=[
-                [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+                [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
             ],
             evidence=['thief', 'X', 'inC', 'onDP', 'onPP'],
             evidence_card=[2, 3, 2, 2, 2],
