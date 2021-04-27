@@ -1,7 +1,9 @@
+from datetime import date
 from networkx.generators.triads import TRIAD_EDGES
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import re
 
 
@@ -23,121 +25,93 @@ def plot(data: pd.DataFrame):
     plt.show()
 
 
-def plot_medical_treatment_results(data: pd.DataFrame, title: str):
-    data = data.drop('step', axis=1).\
-        groupby(['test', 'sample', 'agent']).sum()
-    data = data.groupby(['test', 'agent']).mean()
-    tests = data.columns.values.tolist()
-    data = data.groupby('agent')
-    for test in tests:
-        agents = data[test].apply(list).to_dict()
-        plt.figure(title)
-        unique_legend_causal = True
-        unique_legend = True
-        for agent in agents:
-            label = re.search('Params: ([A-Z.,a-z]*)', agent).group(1)
-            if 'Random' in label:
-                plt.plot(agents[agent], 'k', label=label, linewidth=4)
-            elif 'CausalQLearning' in label:
-                if unique_legend_causal:
-                    plt.plot(agents[agent], 'b', label=label)
-                else:
-                    plt.plot(agents[agent], 'b')
-                unique_legend_causal = False
-            else:
-                if unique_legend:
-                    plt.plot(agents[agent], 'r', label=label)
-                else:
-                    plt.plot(agents[agent], 'r')
-                unique_legend = False
-
-    #plt.title(title, fontsize=30)
-
+def show_plot():
     plt.tick_params(axis='both', which='major', labelsize=24)
-
-    plt.ylabel('Cumulative Reward', fontsize=26)
-    plt.ylim([42.5, 92.5])
-    plt.yticks(np.arange(42.5, 92.5+5, 5.0))
-    
-    plt.xlabel('Number of tests', fontsize=26)
-    plt.xlim([0, 9])
-    plt.xticks(np.arange(0, 9+1, 1.0))
-    
     plt.grid(linestyle='--', linewidth=0.5, color='.25', zorder=-10)
     plt.legend(loc='upper left', fancybox=True, shadow=True, prop={'size': 28})
     plt.subplots_adjust(left=0.07, right=0.98, top=0.95, bottom=0.10)
-       
+
+    plt.xlabel('Number of tests', fontsize=26)
     plt.show()
 
 
-def plot_mean(data: pd.DataFrame, n:int):
-    data = data.drop('step', axis=1).\
-        groupby(['test', 'sample', 'agent']).sum()
-    data = data.groupby(['test', 'agent']).mean()
-    tests = data.columns.values.tolist()
-    data = data.groupby('agent')
-    for test in tests:
-        agents = data[test].apply(list).to_dict()
-        plt.figure(test)
-        for agent in agents:
-            if not 'Random' in agent:
-                for i in range(len(agents[agent])):
-                    agents[agent][i] /= n
-            plt.plot(agents[agent], label=agent)
-        plt.ylabel(test)
-        plt.xlabel('Number of tests')
-        plt.grid(linestyle='--', linewidth=0.5, color='.25', zorder=-10)
-    plt.legend(loc='upper left')
-    plt.show()
+def _medical_treatment(path: str):
+    data = pd.read_csv(path)
+    data[['ID','agent_name']] = data['agent'].str.split(',', 1, expand=True)
+    data['agent_name'] = data['agent_name'].replace({
+            'Params: Random.+': 'Random',
+            'Params: CausalQLearning.+': 'Causal Q-Learning',
+            'Params: QLearning.+': 'Q-Learning',
+            },
+            regex=True)
+    data = data.drop(['agent', 'step'], axis=1).groupby(['test', 'sample', 'agent_name', 'ID']).sum()
+    data = data.groupby(['test', 'agent_name', 'ID']).mean()
+    print(data)
+    
+    # SET PLOT FOR MEDICAL TREATMENT ENVIRONMENT
+    plt.ylabel('Cumulative Reward', fontsize=26)
+    plt.ylim([40.0, 92.5])
+    plt.yticks(np.arange(40.0, 92.5+5, 5.0))
+    
+    plt.xlim([0, 9])
+    plt.xticks(np.arange(0, 9+1, 1.0))
+    return data
+
+def plot_medical_treatment(path: str):
+    data = _medical_treatment(path)
+    sns.lineplot(data=data, x="test", y='reward', hue="agent_name", units="ID", estimator=None)
+    show_plot()
+
+def plot_medical_treatment_mean(path: str):
+    data = _medical_treatment(path)
+    sns.lineplot(data=data, x="test", y='reward', hue="agent_name", ci="sd")
+    show_plot()
 
 
-def plot_taxi_results(data: pd.DataFrame, title: str):
-    data = data.drop('step', axis=1).\
-        groupby(['test', 'sample', 'agent']).sum()
-    data = data.groupby(['test', 'agent']).mean()
-    tests = data.columns.values.tolist()
-    data = data.groupby('agent')
-    for test in tests:
-        agents = data[test].apply(list).to_dict()
-        plt.figure(test)
-        unique_legend_causal = True
-        unique_legend = True
-        for agent in agents:
-            label = re.search('Params: ([A-Z.,a-z]*)', agent).group(1)
-            if 'Random' in label:
-                plt.plot(agents[agent], 'k', label=label, linewidth=4)
-            elif 'CausalQLearning' in label:
-                if unique_legend_causal:
-                    plt.plot(agents[agent], 'b', label=label)
-                else:
-                    plt.plot(agents[agent], 'b')
-                unique_legend_causal = False
-            else:
-                if unique_legend:
-                    plt.plot(agents[agent], 'r', label=label)
-                else:
-                    plt.plot(agents[agent], 'r')
-                unique_legend = False
+def _taxi(path: str, drop_column: str):
+    data = pd.read_csv(path)
+    data[['ID','agent_name']] = data['agent'].str.split(',', 1, expand=True)
+    data['agent_name'] = data['agent_name'].replace({
+        'Params: Random.+': 'Random',
+        'Params: CausalQLearning.+': 'Causal Q-Learning',
+        'Params: QLearning.+': 'Q-Learning',
+        },
+        regex=True)
+    data = data.drop([drop_column, 'agent', 'step'], axis=1).groupby(['test', 'sample', 'agent_name', 'ID']).sum()
+    data = data.groupby(['test', 'agent_name', 'ID']).mean()
+    # SET PLOT FOR TAXI ENVIRONMENT  
+    plt.xlim([0, 19])
+    plt.xticks(np.arange(0, 19, 1.0))
+    return data
 
-        plt.tick_params(axis='both', which='major', labelsize=24)
+def plot_taxi(path: str):
+    ########### PLOT WINS ###########
+    data = _taxi(path, drop_column='reward')
+    sns.lineplot(data=data, x="test", y='wins', hue="agent_name", units="ID", estimator=None)
+    plt.ylabel('Wins', fontsize=26)
+    plt.ylim([0, 1])
+    plt.yticks(np.arange(-0.1, 1.1, 0.1))
+    show_plot()
+    ########### PLOT REWARD ###########
+    data = _taxi(path, drop_column='wins')
+    sns.lineplot(data=data, x="test", y='reward', hue="agent_name", units="ID", estimator=None)
+    plt.ylabel('Cumulative Reward', fontsize=26)
+    plt.ylim([-2000, 100])
+    plt.yticks(np.arange(-2000, 101, 200))
+    show_plot()
 
-        plt.xlabel('Number of tests', fontsize=26)
-        plt.xlim([0, 20])
-        plt.xticks(np.arange(0, 20+1, 1.0))
-
-        plt.grid(linestyle='--', linewidth=0.5, color='.25', zorder=-10)
-        plt.legend(loc='upper left', fancybox=True, shadow=True, prop={'size': 28})
-        plt.subplots_adjust(left=0.07, right=0.98, top=0.95, bottom=0.10)
-
-        if test == 'wins':
-            plt.ylabel('Wins', fontsize=26)
-            plt.ylim([0.0, 1.0])
-            plt.yticks(np.arange(0-0.1, 1+0.1, 0.05))
-        else:
-            plt.ylabel('Cumulative Reward', fontsize=26)
-            plt.ylim([-2000, 20])
-            plt.yticks(np.arange(-2000, 20, 100.0))
-        
-
-       
-    plt.show()
+def plot_taxi_mean(path: str):
+    ########### PLOT WINS ###########
+    data = _taxi(path, drop_column='reward')
+    sns.lineplot(data=data, x="test", y='wins', hue="agent_name", ci="sd")
+    plt.ylabel('Wins', fontsize=26)
+    plt.ylim([0, 1])
+    plt.yticks(np.arange(-0.1, 1.1, 0.1))
+    show_plot()
+    ########### PLOT REWARD ###########
+    data = _taxi(path, drop_column='wins')
+    sns.lineplot(data=data, x="test", y='reward', hue="agent_name", ci="sd")
+    plt.ylabel('Cumulative Reward', fontsize=26)
+    plt.ylim([-2000, 100])
+    plt.yticks(np.arange(-2000, 101, 200))
+    show_plot()
