@@ -21,6 +21,7 @@ if __name__ == '__main__':
     '''
     list_env = ['confounder_directly_influencing_outcome']
     observe_confounder = False
+    number_of_agents = 1
     max_steps = 1000
 
     alpha = 0.005
@@ -47,19 +48,20 @@ if __name__ == '__main__':
         ####################################
         # Random Agent
         ####################################
-        random_agent = rl.Random(actions=env.actions)
+        for _ in range(number_of_agents):
+            random_agent = rl.Random(actions=env.actions)
 
-        session = rl.Session(env=env, agent=random_agent, max_steps=max_steps)
+            session = rl.Session(env=env, agent=random_agent, max_steps=max_steps)
 
-        results.append(
-            session.run(
-                episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-        )
+            results.append(
+                session.run(
+                    episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
+            )
         
         ####################################
         # A lot of Causal Q-Learning
         ####################################
-        for _ in range(1):
+        for _ in range(number_of_agents):
             agent = rl.CausalQLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -76,7 +78,7 @@ if __name__ == '__main__':
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################
-        for _ in range(1):
+        for _ in range(number_of_agents):
             agent = rl.QLearning(
                 states=env.states, actions=env.actions,
                 alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
@@ -89,12 +91,7 @@ if __name__ == '__main__':
             )
 
         ####################################
-        # PLOT
+        # Save results
         ####################################
         results = pd.concat(results)
-
-        # Save results to csv
         results.to_csv('results/' + env_type + '.csv', index=False)
-
-        rl.plot(results)
-        #rl.plot_mean(results, n=100)

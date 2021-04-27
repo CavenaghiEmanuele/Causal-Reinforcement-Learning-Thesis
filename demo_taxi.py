@@ -11,17 +11,18 @@ if __name__ == '__main__':
     ####################################
     episodes = 2000
     test_offset = 100
-    test_sample = 50
+    test_sample = 30
 
     env_name = 'taxi_confounder' # taxi, taxi_generic_model, taxi_confounder
     observe_confounders = True
+    number_of_agents = 1
 
-    alpha = 0.1
+    alpha = 0.3
     epsilon = 1
-    epsilon_decay = 0.99
-    gamma = 0.99
-    min_epsilon = 0.01
-    causal_threshold = 0.5
+    epsilon_decay = 0.995
+    gamma = 0.98
+    min_epsilon = 0.05
+    causal_threshold = 0.6
     ####################################
 
     if env_name == 'taxi':
@@ -32,51 +33,51 @@ if __name__ == '__main__':
         env = rl.TaxiConfounder(build_causal_model=True, observe_confounder=observe_confounders)
 
     results = []
-    '''
+    
     ####################################
     # Vanilla Q-Learning
     ####################################
-    agent = rl.QLearning(
-        states=env.states, actions=env.actions,
-        alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma, min_epsilon=min_epsilon)
+    for _ in range(number_of_agents):
+        agent = rl.QLearning(
+            states=env.states, actions=env.actions,
+            alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma, min_epsilon=min_epsilon)
 
-    session = rl.Session(env=env, agent=agent)
+        session = rl.Session(env=env, agent=agent)
 
-    results.append(
-        session.run(
-            episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-    )
-    ''''''
+        results.append(
+            session.run(
+                episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
+        )
+    
     ####################################
     # Random agent
     ####################################
-    random_agent = rl.Random(actions=env.actions)
-    session = rl.Session(env=env, agent=random_agent)
-    results.append(
-        session.run(
-            episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-    )
-    '''
+    for _ in range(number_of_agents):
+        random_agent = rl.Random(actions=env.actions)
+        session = rl.Session(env=env, agent=random_agent)
+        results.append(
+            session.run(
+                episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
+        )
+    
     ####################################
     # Causal Q-Learning
     ####################################
-    causal_agent = rl.CausalQLearning(
-        states=env.states, actions=env.actions,
-        alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma, 
-        min_epsilon=min_epsilon, causal_threshold=causal_threshold)
+    for _ in range(number_of_agents):
+        causal_agent = rl.CausalQLearning(
+            states=env.states, actions=env.actions,
+            alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma, 
+            min_epsilon=min_epsilon, causal_threshold=causal_threshold)
 
-    session = rl.Session(env=env, agent=causal_agent)
-    
-    results.append(
-        session.run(
-            episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
-    )
+        session = rl.Session(env=env, agent=causal_agent)
+        
+        results.append(
+            session.run(
+                episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
+        )
 
     ####################################
-    # PLOT
+    # Save results
     ####################################
-   
     results = pd.concat(results)
-
     results.to_csv('tmp.csv', index=False)
-    rl.plot(results)   
