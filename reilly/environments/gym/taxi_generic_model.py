@@ -19,8 +19,11 @@ There are 6 discrete deterministic actions:
 '''
 class TaxiGenericModel(GymEnvironment, CausalEnvironment):
 
-    def __init__(self, build_causal_model:bool=False):
+    _observability: str
+
+    def __init__(self, build_causal_model:bool=False, observability:str='full'):
         self._env = gym.make('Taxi-v3')
+        self._observability = observability
         if build_causal_model:
             self.build_causal_model()
         self.reset()
@@ -187,25 +190,76 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
         # onDP = the cab is on the Destination Position
         # inC = passenger is in the cab
 
+        # (taxi_row, taxi_col, passenger_location, destination)
         state = self.decode(state)
-        evidence = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
 
+        inC = {
+            0: {'inC': 'False'}, 
+            1: {'inC': 'False'}, 
+            2: {'inC': 'False'}, 
+            3: {'inC': 'False'}, 
+            4: {'inC': 'True'}
+            }
         pp = {
-            0 : {'PP' : 'state ' + str(0), 'inC' : 'False'},
-            1 : {'PP' : 'state ' + str(4), 'inC' : 'False'},
-            2 : {'PP' : 'state ' + str(20), 'inC' : 'False'},
-            3 : {'PP' : 'state ' + str(23), 'inC' : 'False'},
-            4 : {'PP' : 'state ' + str(state[0]*5 + state[1]), 'inC' : 'True'}
-        }
-        evidence.update(pp[state[2]])
-
+            0 : {'PP' : 'state ' + str(0)},
+            1 : {'PP' : 'state ' + str(4)},
+            2 : {'PP' : 'state ' + str(20)},
+            3 : {'PP' : 'state ' + str(23)},
+            4 : {'PP' : 'state ' + str(state[0]*5 + state[1])}}
         pd = {
             0 : {'DP' : 'destination ' + str(0)},
             1 : {'DP' : 'destination ' + str(4)},
             2 : {'DP' : 'destination ' + str(20)},
-            3 : {'DP' : 'destination ' + str(23)}
-        }  
-        evidence.update(pd[state[3]])
+            3 : {'DP' : 'destination ' + str(23)}}
+
+        evidence = {}
+        # EVIDENZE inC
+        evidence.update(inC[state[2]])
+        
+        # EVIDENCE onPP, onDP
+        if state[0]*5 + state[1] == 0:
+            if state[2] == 0:
+                evidence.update({'onPP' : 'True'})
+            else:
+                evidence.update({'onPP' : 'False'})
+            if state[3] == 0:
+                evidence.update({'onDP' : 'True'})
+            else:
+                evidence.update({'onDP' : 'False'})
+        elif state[0]*5 + state[1] == 4:
+            if state[2] == 1:
+                evidence.update({'onPP' : 'True'})
+            else:
+                evidence.update({'onPP' : 'False'})
+            if state[3] == 1:
+                evidence.update({'onDP' : 'True'})
+            else:
+                evidence.update({'onDP' : 'False'})
+        elif state[0]*5 + state[1] == 20:
+            if state[2] == 2:
+                evidence.update({'onPP' : 'True'})
+            else:
+                evidence.update({'onPP' : 'False'})
+            if state[3] == 2:
+                evidence.update({'onDP' : 'True'})
+            else:
+                evidence.update({'onDP' : 'False'})
+        elif state[0]*5 + state[1] == 23:
+            if state[2] == 3:
+                evidence.update({'onPP' : 'True'})
+            else:
+                evidence.update({'onPP' : 'False'})           
+            if state[3] == 3:
+                evidence.update({'onDP' : 'True'})
+            else:
+                evidence.update({'onDP' : 'False'})
+
+        if self._observability == 'full':
+            # EVIDENCE CP, PP, DP
+            evidence = {'CP' : 'cab state ' + str(state[0]*5 + state[1])}
+            evidence.update(pp[state[2]])        
+            evidence.update(pd[state[3]])
+
         return evidence
 
     def get_action(self):
