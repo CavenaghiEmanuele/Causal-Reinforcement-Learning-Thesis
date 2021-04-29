@@ -57,7 +57,7 @@ class TaxiConfounder(GymEnvironment, CausalEnvironment):
         return next_state, reward, done, info
 
     def reset(self, *args, **kwargs) -> int:
-        self._thief = bool(random.getrandbits(1))
+        self._thief = bool(np.random.binomial(size=1, n=1, p=0.7)[0]) # P(thief = 1)
         return self._env.reset()
 
     def decode(self, state):
@@ -163,7 +163,7 @@ class TaxiConfounder(GymEnvironment, CausalEnvironment):
         cpd_thief = TabularCPD(
             variable='thief',
             variable_card=2,
-            values=[[0.5],[0.5]],
+            values=[[0.3],[0.7]],
             state_names={'thief': ['no thief','thief']}
             )
         cpd_X = TabularCPD(
