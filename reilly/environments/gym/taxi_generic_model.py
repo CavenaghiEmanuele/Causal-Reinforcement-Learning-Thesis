@@ -152,8 +152,8 @@ class TaxiGenericModel(GymEnvironment, CausalEnvironment):
             variable='Y',
             variable_card=2,
             values=[
-                [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0], 
-                [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1]
+                [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0], 
+                [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
             ],
             evidence=['X', 'inC', 'onDP', 'onPP'],
             evidence_card=[2, 2, 2, 2],
