@@ -102,7 +102,7 @@ class Session(object):
                 })
                 if step >= self._max_steps:
                     self._reset_env()
-                    return pd.DataFrame(out)
+                    done = True
                 step += 1
             self._reset_env()
         return pd.DataFrame(out)
