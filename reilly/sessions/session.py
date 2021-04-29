@@ -42,7 +42,7 @@ class Session(object):
         step = 0
         done = False
         while not done:
-            action = self._agent.get_action()
+            action, causal_action = self._agent.get_action()
             
             next_state, reward, done, _ = self._env.run_step(
                 action,
@@ -58,6 +58,7 @@ class Session(object):
                 training=True,
                 t=step,
                 env=self._env,
+                causal_action=causal_action
             )
             if step >= self._max_steps:
                 self._reset_env()
@@ -75,7 +76,7 @@ class Session(object):
                 if render:
                     self._env.render()
                     time.sleep(0.1)
-                action = self._agent.get_action()
+                action, _ = self._agent.get_action()
                 
                 next_state, reward, done, info = self._env.run_step(
                     action,

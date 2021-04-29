@@ -9,6 +9,7 @@ class Random(Agent, object):
 
     def __init__(self, actions: int):
         self._actions = actions
+        self._causal_action = False
     
     def __repr__(self):
         return "Random agent"

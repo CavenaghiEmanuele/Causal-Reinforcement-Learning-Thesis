@@ -13,6 +13,7 @@ class Agent():
     ]
 
     _A: int
+    _causal_action: bool
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('backend', None) == 'cpp':
@@ -24,7 +25,7 @@ class Agent():
         return super(Agent, cls).__new__(cls)
 
     def get_action(self):
-        return self._A
+        return self._A, self._causal_action
 
     @abstractmethod
     def update(self, n_S: int, R: float, done: bool, *args, **kwargs):
