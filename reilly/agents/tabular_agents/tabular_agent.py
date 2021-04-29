@@ -31,7 +31,6 @@ class TabularAgent(Agent, ABC, object):
         self._e_decay = epsilon_decay
         self._actions = actions
         self._min_epsilon = min_epsilon
-        self._causal_action = False
 
     def _select_action(self, policy_state) -> int:
         return np.random.choice(range(self._actions), p=policy_state)
