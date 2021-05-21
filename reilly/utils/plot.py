@@ -46,7 +46,6 @@ def _medical_treatment(path: str):
             regex=True)
     data = data.drop(['agent', 'step'], axis=1).groupby(['test', 'sample', 'agent_name', 'ID']).sum()
     data = data.groupby(['test', 'agent_name', 'ID']).mean()
-    print(data)
     
     # SET PLOT FOR MEDICAL TREATMENT ENVIRONMENT
     plt.ylabel('Cumulative Reward', fontsize=26)
