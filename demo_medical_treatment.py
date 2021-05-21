@@ -21,7 +21,7 @@ if __name__ == '__main__':
     '''
     list_env = ['confounder_directly_influencing_outcome']
     observe_confounder = False
-    number_of_agents = 1
+    number_of_agents = 30
     max_steps = 1000
 
     alpha = 0.005
@@ -48,11 +48,10 @@ if __name__ == '__main__':
         ####################################
         # Random Agent
         ####################################
-        for _ in range(number_of_agents):
-            random_agent = rl.Random(actions=env.actions)
+        random_agents = [rl.Random(actions=env.actions) for _ in range(number_of_agents)]
 
-            session = rl.Session(env=env, agent=random_agent, max_steps=max_steps)
-
+        for agent in random_agents:
+            session = rl.Session(env=env, agent=agent, max_steps=max_steps)
             results.append(
                 session.run(
                     episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
@@ -61,30 +60,26 @@ if __name__ == '__main__':
         ####################################
         # A lot of Causal Q-Learning
         ####################################
-        for _ in range(number_of_agents):
-            agent = rl.CausalQLearning(
-                states=env.states, actions=env.actions,
-                alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
-
+        causal_q_learning_agents = [
+            rl.CausalQLearning(states=env.states, actions=env.actions,alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma) 
+            for _ in range(number_of_agents)]
+        
+        for agent in causal_q_learning_agents:
             session = rl.Session(env=env, agent=agent, max_steps=max_steps)
-
             results.append(
                 session.run(
                     episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
             )
-
-            #print(agent._cache_inference)
         
         ####################################
         # A lot of Vanilla Q-Learning
         ####################################
-        for _ in range(number_of_agents):
-            agent = rl.QLearning(
-                states=env.states, actions=env.actions,
-                alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma)
-
+        q_learning_agents = [
+            rl.CausalQLearning(states=env.states, actions=env.actions,alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma) 
+            for _ in range(number_of_agents)]
+        
+        for agent in q_learning_agents:
             session = rl.Session(env=env, agent=agent, max_steps=max_steps)
-
             results.append(
                 session.run(
                     episodes=episodes, test_offset=test_offset, test_samples=test_sample, render=False)
