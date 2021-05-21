@@ -20,7 +20,7 @@ if __name__ == '__main__':
         'confounder_not_directly_influencing_outcome']
     '''
     list_env = ['confounder_directly_influencing_outcome']
-    observe_confounder = False
+    observe_confounder = True
     number_of_agents = 30
     max_steps = 1000
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         # A lot of Vanilla Q-Learning
         ####################################
         q_learning_agents = [
-            rl.CausalQLearning(states=env.states, actions=env.actions,alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma) 
+            rl.QLearning(states=env.states, actions=env.actions,alpha=alpha, epsilon=epsilon, epsilon_decay=epsilon_decay, gamma=gamma) 
             for _ in range(number_of_agents)]
         
         for agent in q_learning_agents:
