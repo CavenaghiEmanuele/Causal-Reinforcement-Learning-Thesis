@@ -1,9 +1,11 @@
 import random
+import numpy as np
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.models import BayesianModel
 from typing import Dict
 
-import numpy as np
-
 from .abstract_medical_treatment import AbstractMedicalTreatment
+from .abstract_causal_medical_treatment import AbstractCausalMedicalTreatment
 
 '''
 States:
@@ -25,7 +27,7 @@ Rewards:
     - 0: not healthy
     - 1: healthy 
 '''
-class ConfounderNotDirectlyInfluencingOutcome(AbstractMedicalTreatment):
+class ConfounderNotDirectlyInfluencingOutcome(AbstractMedicalTreatment, AbstractCausalMedicalTreatment):
 
     _next_state_probs: Dict
 
@@ -62,6 +64,9 @@ class ConfounderNotDirectlyInfluencingOutcome(AbstractMedicalTreatment):
             '[1, 1, 1, 1]': 0.2
             }
 
+        if build_causal_model:
+            self.build_causal_model()
+
         super().__init__(
             build_causal_model=build_causal_model, 
             observe_confounder=observe_confounder, 
@@ -97,3 +102,109 @@ class ConfounderNotDirectlyInfluencingOutcome(AbstractMedicalTreatment):
             return self.encode(self._state), reward, done, {} # info = {}
         else:
             return self._state[0], reward, done, {} # info = {}
+
+
+    ###############################################
+    # Causal section
+    ###############################################
+    
+    def build_causal_model(self):
+        self._causal_model = BayesianModel(
+            [
+                ('S_p', 'S'),
+                ('X_p', 'S'),
+
+                ('S', 'X'),
+                ('S', 'Y'),
+
+                ('M', 'X'),
+                ('M', 'S'),
+
+                ('E', 'X'),
+                ('E', 'S'),
+
+                ('X', 'Y'),
+            ])
+
+        # S_p = Previous state
+        cpd_S_p = TabularCPD(
+            variable='S_p',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'S_p':['low', 'high']})
+        # X_p = Previous action
+        cpd_X_p = TabularCPD(
+            variable='X_p',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'X_p':['no drug', 'give drug']})
+        cpd_M = TabularCPD(
+            variable='M',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'M':['positive', 'negative']})
+        cpd_E = TabularCPD(
+            variable='E',
+            variable_card=2,
+            values=[[0.5], [0.5]],
+            state_names={'E':['wealthy', 'poor']})
+        cpd_S = TabularCPD(
+            variable='S',
+            variable_card=2,
+            values=[
+                [0.3, 0.1, 0.1, 0.3, 0.7, 0.9, 0.9, 0.7, 0.5, 0.3, 0.3, 0.5, 0.2, 0.4, 0.4, 0.2],
+                [0.7, 0.9, 0.9, 0.7, 0.3, 0.1, 0.1, 0.3, 0.5, 0.7, 0.7, 0.5, 0.8, 0.6, 0.6, 0.8]
+                ],
+            evidence=['X_p', 'S_p', 'M', 'E'],
+            evidence_card=[2, 2, 2, 2],
+            state_names={
+                'S_p':['low', 'high'],
+                'S':['low', 'high'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'X_p':['no drug', 'give drug']
+                })
+        cpd_X = TabularCPD(
+            variable='X',
+            variable_card=2,
+            values=[
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                ],
+            evidence=['M', 'E', 'S'],
+            evidence_card=[2,2,2],
+            state_names={
+                'X':['no drug', 'give drug'],
+                'M':['positive', 'negative'],
+                'E':['wealthy', 'poor'],
+                'S':['low', 'high']
+                })
+        cpd_Y = TabularCPD(
+            variable='Y',
+            variable_card=2,
+            values=[
+                [0.8, 0.2, 0.2, 0.8],
+                [0.2, 0.8, 0.8, 0.2]
+                ],
+            evidence=['S', 'X'],
+            evidence_card=[2, 2],
+            state_names={
+                'Y':['not healthy', 'healthy'],
+                'S':['low', 'high'],
+                'X':['no drug', 'give drug']
+                })
+
+        self._causal_model.add_cpds(
+            cpd_S_p, cpd_X_p, cpd_M, cpd_E, cpd_S, cpd_X, cpd_Y)
+        
+        self._causal_model.check_model()
+
+    def get_evidence(self, state):
+        if self._observe_confounder:
+            return {
+                'S': self._state[0],
+                'M': self._state[1],
+                'E': self._state[2],
+            }
+        else:
+            return {'S': self._state[0]}
