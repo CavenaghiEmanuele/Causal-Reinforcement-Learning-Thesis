@@ -1,10 +1,10 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from abc import ABC, abstractmethod
+from abc import ABC
 
-from ..agent import Agent
-from ...structures import ActionValue, Policy
+from .agent import Agent
+from ..structures import ActionValue, Policy
 
 
 class TabularAgent(Agent, ABC, object):
@@ -48,12 +48,5 @@ class TabularAgent(Agent, ABC, object):
                 policy[state, A] = self._epsilon / self._actions
 
     def plot_Q_values(self):
-
-        ax = sns.heatmap(self._Q._action_value)
+        _ = sns.heatmap(self._Q._action_value)
         plt.show()
-
-        '''
-        plt.imshow(self._Q._action_value, cmap='hot', interpolation='nearest')
-        plt.colorbar()
-        plt.show()
-        '''

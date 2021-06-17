@@ -14,12 +14,13 @@ if __name__ == '__main__':
     '''
     list_env = [
         'confounder_directly_influencing_outcome',
+        'confounder_not_directly_influencing_outcome',
+        'confounder_directly_influencing_state_outcome'
         'collider',
         'confounder_in_time',
-        'confounder_directly_influencing_state_outcome',
-        'confounder_not_directly_influencing_outcome']
+        ]
     '''
-    list_env = ['confounder_directly_influencing_outcome']
+    list_env = ['confounder_in_time']
     observe_confounder = True
     number_of_agents = 30
     max_steps = 1000
@@ -35,13 +36,13 @@ if __name__ == '__main__':
         if env_type == 'confounder_directly_influencing_outcome':
             env = rl.ConfounderDirectlyInfluencingOutcome(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'collider':
-            env = rl.Collider(observe_confounder=observe_confounder)
+            env = rl.Collider(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_in_time':
             env = rl.ConfounderInTime(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_directly_influencing_state_outcome':
             env = rl.ConfounderDirectlyInfluencingStateOutcome(observe_confounder=observe_confounder, build_causal_model=True)
         elif env_type == 'confounder_not_directly_influencing_outcome':
-            env = rl.ConfounderNotDirectlyInfluencingOutcome(observe_confounder=observe_confounder)
+            env = rl.ConfounderNotDirectlyInfluencingOutcome(observe_confounder=observe_confounder, build_causal_model=True)
 
         results = []
         

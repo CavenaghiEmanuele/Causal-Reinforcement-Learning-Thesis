@@ -1,6 +1,6 @@
 from abc import ABC
 
-from ..tabular_agent import TabularAgent
+from .tabular_agent import TabularAgent
 
 
 class TemporalDifference(TabularAgent, ABC, object):

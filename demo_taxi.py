@@ -1,5 +1,3 @@
-from types import TracebackType
-from reilly.agents.agent import Agent
 import pandas as pd
 
 import reilly as rl
@@ -14,7 +12,7 @@ if __name__ == '__main__':
     test_offset = 100
     test_sample = 30
 
-    env_name = 'taxi_generic_model' # taxi, taxi_generic_model, taxi_confounder
+    env_name = 'taxi_confounder' # taxi, taxi_generic_model, taxi_confounder
     observe_confounders = True
     number_of_agents = 1
 
@@ -29,7 +27,7 @@ if __name__ == '__main__':
     if env_name == 'taxi':
         env = rl.Taxi(build_causal_model=True, confounders=observe_confounders)
     elif env_name == 'taxi_generic_model':
-        env = rl.TaxiGenericModel(build_causal_model=True, observability='partials') # full, partial
+        env = rl.TaxiGenericModel(build_causal_model=True, observability='partial') # full, partial
     elif env_name == 'taxi_confounder':
         env = rl.TaxiConfounder(build_causal_model=True, observe_confounder=observe_confounders)
 
@@ -81,4 +79,4 @@ if __name__ == '__main__':
     # Save results
     ####################################
     results = pd.concat(results)
-    results.to_csv('results/taxi/tmp.csv', index=False)
+    results.to_csv('results/' + env_name + '.csv', index=False)

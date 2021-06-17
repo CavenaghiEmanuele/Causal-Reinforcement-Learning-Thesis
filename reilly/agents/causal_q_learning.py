@@ -1,8 +1,6 @@
 import numpy as np
-import operator
 
 from .causal_td import CausalTD
-from ....utils.causal_inference import causal_query
 
 
 class CausalQLearning(CausalTD, object):

@@ -1,7 +1,5 @@
-import numpy as np
-
 from typing import List
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from .. import backend
 

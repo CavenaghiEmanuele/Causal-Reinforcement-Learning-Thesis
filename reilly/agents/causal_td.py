@@ -5,7 +5,7 @@ import random
 from abc import ABC
 
 from .temporal_difference import TemporalDifference
-from ....utils.causal_inference import causal_query
+from ..utils.causal_inference import causal_query
 
 
 class CausalTD(TemporalDifference, ABC, object):

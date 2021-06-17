@@ -1,8 +1,7 @@
 from .environment import Environment
 from .causal_environment import CausalEnvironment
 from .gym import *
-from .text import TextEnvironment, TextNeighbor
-from .medical_treatment_paper import *
+from .medical_treatment import *
 
 
 def ENVIRONMENTS():

@@ -89,8 +89,8 @@ class ConfounderDirectlyInfluencingStateOutcome(AbstractMedicalTreatment, Abstra
         # S, M, E
         self._state = [
             1, 
-            np.random.binomial(size=1, n=1, p=0.7)[0], 
-            np.random.binomial(size=1, n=1, p=0.7)[0]
+            np.random.binomial(size=1, n=1, p=0.5)[0], 
+            np.random.binomial(size=1, n=1, p=0.5)[0]
             ]
         self._step = 0
         self._done = False
@@ -158,12 +158,12 @@ class ConfounderDirectlyInfluencingStateOutcome(AbstractMedicalTreatment, Abstra
         cpd_M = TabularCPD(
             variable='M',
             variable_card=2,
-            values=[[0.7], [0.3]],
+            values=[[0.5], [0.5]],
             state_names={'M':['positive', 'negative']})
         cpd_E = TabularCPD(
             variable='E',
             variable_card=2,
-            values=[[0.7], [0.3]],
+            values=[[0.5], [0.5]],
             state_names={'E':['wealthy', 'poor']})
         cpd_S = TabularCPD(
             variable='S',
